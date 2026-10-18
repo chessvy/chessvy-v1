@@ -7,23 +7,31 @@ export class ReviewAudio {
   private context: AudioContext | null = null;
   private buffers = new Map<string, AudioBuffer>();
   private active: AudioBufferSourceNode | null = null;
-  async prepare() {
-    if (this.context) return;
+  private preparing: Promise<void> | null = null;
+  prepare(): Promise<void> {
+    if (this.preparing) return this.preparing;
     this.context = new AudioContext();
     const context = this.context;
-    await Promise.all(Object.entries(urls).map(async ([key, url]) => {
+    this.preparing = Promise.all(Object.entries(urls).map(async ([key, url]) => {
       try {
         const response = await fetch(url);
         if (!response.ok) return;
         this.buffers.set(key, await context.decodeAudioData(await response.arrayBuffer()));
       } catch { /* Optional sound must never prevent a review. */ }
-    }));
+    })).then(() => {});
+    return this.preparing;
   }
-  unlock() { void this.context?.resume().catch(() => {}); }
-  play(kind: keyof typeof urls) {
+  unlock() {
+    if (!this.context) void this.prepare();
+    void this.context?.resume().catch(() => {});
+  }
+  async play(kind: keyof typeof urls) {
+    this.unlock();
+    await this.prepare();
     const context = this.context, buffer = this.buffers.get(kind);
     if (!context || !buffer) return;
-    this.unlock(); this.stop();
+    try { await context.resume(); } catch { return; }
+    this.stop();
     const source = context.createBufferSource(), gain = context.createGain();
     source.buffer = buffer; gain.gain.value = kind === "check" ? 0.85 : 0.6;
     source.connect(gain); gain.connect(context.destination); source.start(); this.active = source;
@@ -42,5 +50,5 @@ export class ReviewAudio {
     });
   }
   stop() { try { this.active?.stop(); } catch { /* Already stopped. */ } this.active = null; }
-  dispose() { this.stop(); void this.context?.close().catch(() => {}); }
+  dispose() { this.stop(); void this.context?.close().catch(() => {}); this.context = null; }
 }
