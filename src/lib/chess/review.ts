@@ -11,7 +11,8 @@ import {
   type Classification,
 } from "./classify";
 
-export const ENGINE_DEPTH = 16;
+export const ENGINE_DEPTH = 18;
+export const VERIFICATION_DEPTH = 22;
 const VALUE: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
 export interface AnalyzedMove {
@@ -45,13 +46,19 @@ export function parsePgn(pgn: string): { moves: Move[]; headers: Record<string, 
   return { moves, headers: c.getHeaders() as Record<string, string> };
 }
 
-function isSacrifice(m: Move): boolean {
+export function isSacrifice(m: Move): boolean {
   if (m.promotion || m.san.includes("#") || (VALUE[m.piece] ?? 0) < 3) return false;
   const after = new Chess(m.after);
-  const opp = m.color === "w" ? "b" : "w";
-  if (!after.isAttacked(m.to, opp)) return false;
+  // Geometric attacks include pinned pieces; only legal captures count.
+  const captures = after.moves({ verbose: true }).filter(reply => reply.to === m.to && reply.captured);
+  if (!captures.length) return false;
   const gained = m.captured ? (VALUE[m.captured] ?? 0) : 0;
-  return (VALUE[m.piece] ?? 0) - gained >= 2;
+  return captures.some(reply => {
+    const position = new Chess(m.after); position.move(reply.san);
+    const recaptures = position.moves({ verbose: true }).filter(recapture => recapture.to === m.to && recapture.captured);
+    const recovered = recaptures.length ? (VALUE[reply.piece] ?? 0) : 0;
+    return (VALUE[m.piece] ?? 0) - gained - recovered >= 2;
+  });
 }
 
 function uciToSan(fen: string, uci: string): string | null {
@@ -74,6 +81,7 @@ export async function analyzeGame(
   const evals: number[] = [];
   const engine = new Engine();
   const stm: { best: number; second: number | null; move: string | null }[] = [];
+  const verified = new Set<number>();
   try {
     for (let i = 0; i < fens.length; i++) {
       if (signal.cancelled) throw new Error("cancelled");
@@ -92,6 +100,25 @@ export async function analyzeGame(
       const score = stm[i]?.best ?? 0;
       evals.push(c.turn() === "w" ? score : -score);
       onProgress(i + 1, fens.length, [...evals]);
+    }
+    // Rare sacrifice candidates receive a second, deeper search on both sides.
+    for (let i = 0; i < moves.length; i++) {
+      const move = moves[i], before = stm[i], after = stm[i + 1];
+      if (!move || !before || !after || !isSacrifice(move) || isBookMove(move)) continue;
+      const uci = move.from + move.to + (move.promotion ?? "");
+      if (before.move !== uci || before.best >= 600 || -after.best < 0) continue;
+      if (signal.cancelled) throw new Error("cancelled");
+      const deepBefore = await engine.analyse(move.before, VERIFICATION_DEPTH);
+      const deepAfter = await engine.analyse(move.after, VERIFICATION_DEPTH);
+      const first = deepBefore[0], next = deepAfter[0];
+      if (!first || !next) continue;
+      stm[i] = { best: first.score, second: deepBefore[1]?.score ?? null, move: first.move };
+      stm[i + 1] = { best: next.score, second: deepAfter[1]?.score ?? null, move: next.move };
+      evals[i] = move.color === "w" ? first.score : -first.score;
+      evals[i + 1] = move.color === "w" ? -next.score : next.score;
+      if (first.move === uci && (first.depth ?? 0) >= VERIFICATION_DEPTH && (next.depth ?? 0) >= VERIFICATION_DEPTH) verified.add(i);
+      if (signal.cancelled) throw new Error("cancelled");
+      onProgress(fens.length, fens.length, [...evals]);
     }
   } finally {
     engine.terminate();
@@ -116,6 +143,7 @@ export async function analyzeGame(
       playedIsBest,
       isSacrifice: isSacrifice(m),
       opponentPrevLoss: prevLoss,
+      verified: verified.has(i),
     });
     const a = moveAccuracy(loss);
     if (classification !== "book") acc[m.color].push(a);
