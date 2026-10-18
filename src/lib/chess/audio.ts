@@ -1,6 +1,6 @@
 import move from "@/assets/sounds/move.mp3.asset.json";
 import capture from "@/assets/sounds/capture.mp3.asset.json";
-import check from "@/assets/sounds/check.mp3.asset.json";
+import check from "@/assets/sounds/check-audible.mp3.asset.json";
 
 const urls = { move: move.url, capture: capture.url, check: check.url };
 export class ReviewAudio {
