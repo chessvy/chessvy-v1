@@ -1,47 +1,75 @@
-// Stockfish 18 lite (single-threaded wasm) running in a browser Web Worker.
+// App-hosted, pinned Stockfish 18 lite, single-threaded WASM.
 import { MATE_SCORE } from "./classify";
-
-const SF_URL = "https://unpkg.com/stockfish@18.0.8/bin/stockfish-18-lite-single.js";
-const SF_WASM_URL = "https://unpkg.com/stockfish@18.0.8/bin/stockfish-18-lite-single.wasm";
+import script from "@/assets/engine/stockfish.js.asset.json";
+import wasm from "@/assets/engine/stockfish.wasm.asset.json";
 
 export interface EngineLine {
   move: string; // UCI
   score: number; // cp, side-to-move perspective (mate mapped to +/-MATE_SCORE)
   mate: number | null;
+  depth?: number;
 }
 
 export class Engine {
-  private worker: Worker;
+  private worker: Worker | null = null;
+  private objectUrl: string | null = null;
+  private disposed = false;
   private ready: Promise<void>;
   private handler: ((l: string) => void) | null = null;
+  private fail: ((error: Error) => void) | null = null;
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor() {
-    const blob = new Blob([`importScripts("${SF_URL}");`], { type: "application/javascript" });
-    // The hash carries the wasm location: stockfish.js reads self.location.hash,
-    // which is empty for blob workers and breaks its default wasm path.
-    this.worker = new Worker(URL.createObjectURL(blob) + "#" + encodeURIComponent(SF_WASM_URL));
-    this.worker.onmessage = (e) => this.handler?.(String(e.data));
-    this.ready = new Promise((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error("Engine failed to load")), 30000);
-      this.handler = (l) => {
-        if (l === "uciok") {
-          clearTimeout(t);
-          this.send("isready");
-        } else if (l === "readyok") {
-          resolve();
-        }
-      };
-      this.worker.onerror = () => {
-        clearTimeout(t);
-        reject(new Error("Engine failed to load"));
-      };
-      this.send("uci");
-    });
+    this.ready = this.initialize();
+    // Avoid an unhandled rejection if the user cancels before the first analysis.
+    void this.ready.catch(() => {});
+  }
+
+  private async initialize() {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (this.disposed) throw new Error("cancelled");
+      try {
+        const response = await fetch(script.url, { signal: AbortSignal.timeout(60000), cache: "force-cache" });
+        if (!response.ok) throw new Error("Engine download unavailable");
+        const code = await response.text();
+        if (this.disposed) throw new Error("cancelled");
+        this.objectUrl = URL.createObjectURL(new Blob([code], { type: "application/javascript" }));
+        this.worker = new Worker(this.objectUrl + "#" + encodeURIComponent(new URL(wasm.url, window.location.origin).href));
+        this.worker.onmessage = e => this.handler?.(String(e.data));
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(() => finish(new Error("Engine startup timed out")), 90000);
+          const finish = (error?: Error) => {
+            clearTimeout(timer); this.fail = null; this.handler = null;
+            if (error) reject(error); else resolve();
+          };
+          this.fail = finish;
+          this.handler = line => {
+            if (line === "uciok") {
+              this.send("setoption name Hash value 32");
+              this.send("setoption name Threads value 1");
+              this.send("isready");
+            } else if (line === "readyok") finish();
+          };
+          if (this.worker) this.worker.onerror = () => this.fail?.(new Error("Engine startup interrupted"));
+          this.send("uci");
+        });
+        return;
+      } catch (error) {
+        lastError = error; this.cleanup();
+      }
+    }
+    throw new Error(`The engine couldn't start after retrying. Check your connection and run review again. ${lastError instanceof Error ? lastError.message : ""}`);
+  }
+
+  private cleanup() {
+    this.worker?.terminate(); this.worker = null;
+    if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
+    this.objectUrl = null;
   }
 
   private send(cmd: string) {
-    this.worker.postMessage(cmd);
+    this.worker?.postMessage(cmd);
   }
 
   /** Serialized: one position at a time so info lines never mix between calls. */
@@ -53,21 +81,37 @@ export class Engine {
 
   private async analyseNow(fen: string, depth: number, multipv: number): Promise<EngineLine[]> {
     await this.ready;
-    return new Promise((resolve) => {
+    if (this.disposed) throw new Error("cancelled");
+    return new Promise((resolve, reject) => {
       const lines = new Map<number, EngineLine>();
+      const timer = setTimeout(() => {
+        this.fail?.(new Error("Analysis timed out. Please run review again."));
+        this.cleanup(); this.disposed = true;
+      }, 120000);
+      const finish = (error?: Error) => {
+        clearTimeout(timer); this.handler = null; this.fail = null;
+        const result = [...lines.entries()].sort((a, b) => a[0] - b[0]).map(e => e[1]);
+        if (error) reject(error);
+        else if (!result[0]) reject(new Error("The engine returned no evaluation. Please retry."));
+        else resolve(result);
+      };
+      this.fail = finish;
       this.handler = (l) => {
         if (l.startsWith("info") && l.includes(" pv ")) {
+          if (/\b(upperbound|lowerbound)\b/.test(l)) return;
           const mpv = Number(/multipv (\d+)/.exec(l)?.[1] ?? 1);
           const cp = /score cp (-?\d+)/.exec(l);
           const mate = /score mate (-?\d+)/.exec(l);
           const pv = / pv (\S+)/.exec(l)?.[1];
-          if (!pv) return;
+          if (!pv || (!cp && !mate)) return;
           const m = mate ? Number(mate[1]) : null;
           const score =
             m !== null ? (m > 0 ? MATE_SCORE - m * 10 : -MATE_SCORE - m * 10) : Number(cp?.[1] ?? 0);
-          lines.set(mpv, { move: pv, score, mate: m });
+          const actualDepth = Number(/\bdepth (\d+)/.exec(l)?.[1] ?? 0);
+          if (!Number.isFinite(score)) return;
+          if (actualDepth >= (lines.get(mpv)?.depth ?? 0)) lines.set(mpv, { move: pv, score, mate: m, depth: actualDepth });
         } else if (l.startsWith("bestmove")) {
-          resolve([...lines.entries()].sort((a, b) => a[0] - b[0]).map((e) => e[1]));
+          finish();
         }
       };
       this.send(`setoption name MultiPV value ${multipv}`);
@@ -77,6 +121,8 @@ export class Engine {
   }
 
   terminate() {
-    this.worker.terminate();
+    this.disposed = true;
+    this.fail?.(new Error("cancelled"));
+    this.cleanup();
   }
 }

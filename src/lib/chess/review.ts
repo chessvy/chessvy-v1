@@ -1,5 +1,7 @@
 import { Chess, type Move } from "chess.js";
 import { Engine } from "./engine";
+import { isBookMove } from "./openings";
+import { estimatePerformance } from "./performance";
 import {
   classifyMove,
   MATE_SCORE,
@@ -9,7 +11,7 @@ import {
   type Classification,
 } from "./classify";
 
-export const ENGINE_DEPTH = 12;
+export const ENGINE_DEPTH = 16;
 const VALUE: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
 export interface AnalyzedMove {
@@ -28,6 +30,7 @@ export interface GameReview {
   /** White-perspective cp per position (length = moves + 1). */
   evals: number[];
   accuracy: { white: number | null; black: number | null };
+  performance: { white: number | null; black: number | null };
 }
 
 export function parsePgn(pgn: string): { moves: Move[]; headers: Record<string, string> } {
@@ -81,7 +84,9 @@ export async function analyzeGame(
       else if (c.isGameOver()) stm.push({ best: 0, second: null, move: null });
       else {
         const lines = await engine.analyse(fen, ENGINE_DEPTH);
-        stm.push({ best: lines[0]?.score ?? 0, second: lines[1]?.score ?? null, move: lines[0]?.move ?? null });
+        const primary = lines[0];
+        if (!primary || !Number.isFinite(primary.score)) throw new Error("The engine returned no reliable evaluation. Run review again.");
+        stm.push({ best: primary.score, second: lines[1]?.score ?? null, move: primary.move });
       }
       if (signal.cancelled) throw new Error("cancelled");
       const score = stm[i]?.best ?? 0;
@@ -104,7 +109,7 @@ export async function analyzeGame(
     const uci = m.from + m.to + (m.promotion ?? "");
     const playedIsBest = before.move === uci;
     const loss = playedIsBest ? 0 : winLoss(bestCp, playedCp);
-    const classification = classifyMove({
+    const classification = isBookMove(m) ? "book" : classifyMove({
       bestCp,
       playedCp,
       secondCp: before.second,
@@ -113,7 +118,7 @@ export async function analyzeGame(
       opponentPrevLoss: prevLoss,
     });
     const a = moveAccuracy(loss);
-    acc[m.color].push(a);
+    if (classification !== "book") acc[m.color].push(a);
     out.push({
       ply: i + 1,
       san: m.san,
@@ -127,7 +132,7 @@ export async function analyzeGame(
     prevLoss = loss;
   });
   const avg = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null);
-  return { moves: out, evals, accuracy: { white: avg(acc.w), black: avg(acc.b) } };
+  return { moves: out, evals, accuracy: { white: avg(acc.w), black: avg(acc.b) }, performance: { white: estimatePerformance(acc.w), black: estimatePerformance(acc.b) } };
 }
 
 export { winChance };
