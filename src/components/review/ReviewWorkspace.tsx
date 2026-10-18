@@ -26,7 +26,7 @@ export function ReviewWorkspace() {
   const [promo, setPromo] = useState<{ from: Square; to: Square } | null>(null);
   const cancelRef = useRef({ cancelled: false });
 
-  const fen = ply === 0 ? (moves[0]?.before ?? START) : moves[ply - 1].after;
+  const fen = ply === 0 ? (moves[0]?.before ?? START) : moves[ply - 1]!.after;
   const game = useMemo(() => new Chess(fen), [fen]);
   const last = ply > 0 ? moves[ply - 1] : null;
   const analyzed = review && ply > 0 ? review.moves[ply - 1] : null;
@@ -76,7 +76,7 @@ export function ReviewWorkspace() {
       }
       let m: Move;
       try {
-        m = c.move({ from, to, promotion });
+        m = c.move(promotion ? { from, to, promotion } : { from, to });
       } catch {
         return false;
       }
@@ -141,13 +141,13 @@ export function ReviewWorkspace() {
   };
 
   const corner = analyzed ? badgeCorner(analyzed.to, orientation) : null;
-  const evalCp = review ? review.evals[ply] : null;
+  const evalCp = review ? (review.evals[ply] ?? null) : null;
   const whitePct = evalCp === null ? 50 : winChance(evalCp);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[auto_minmax(320px,420px)]">
       <section className="flex flex-col gap-3">
-        <PlayerTag name={orientation === "white" ? headers.Black : headers.White} fallback={orientation === "white" ? "Black" : "White"} />
+        <PlayerTag name={orientation === "white" ? headers["Black"] : headers["White"]} fallback={orientation === "white" ? "Black" : "White"} />
         <div className="flex gap-2">
           <div className="relative w-4 shrink-0 overflow-hidden rounded-sm bg-eval-black" aria-label="Evaluation bar">
             <div
@@ -208,7 +208,7 @@ export function ReviewWorkspace() {
             )}
           </div>
         </div>
-        <PlayerTag name={orientation === "white" ? headers.White : headers.Black} fallback={orientation === "white" ? "White" : "Black"} />
+        <PlayerTag name={orientation === "white" ? headers["White"] : headers["Black"]} fallback={orientation === "white" ? "White" : "Black"} />
         <div className="flex flex-wrap gap-2">
           <NavBtn label="First" onClick={() => setPly(0)} />
           <NavBtn label="Prev" onClick={() => setPly(Math.max(0, ply - 1))} />
@@ -340,7 +340,7 @@ function EvalGraph({ evals, ply, onPick }: { evals: number[]; ply: number; onPic
     >
       <path d={d} className="fill-eval-white" />
       <line x1={0} x2={w} y1={h / 2} y2={h / 2} className="stroke-border" strokeWidth={0.5} />
-      {pts[ply] && <line x1={pts[ply][0]} x2={pts[ply][0]} y1={0} y2={h} className="stroke-primary" strokeWidth={1.5} />}
+      {pts[ply] && <line x1={pts[ply]![0]} x2={pts[ply]![0]} y1={0} y2={h} className="stroke-primary" strokeWidth={1.5} />}
     </svg>
   );
 }
@@ -354,7 +354,7 @@ function Stat({ label, value }: { label: string; value: number | null }) {
   );
 }
 
-function PlayerTag({ name, fallback }: { name?: string; fallback: string }) {
+function PlayerTag({ name, fallback }: { name?: string | undefined; fallback: string }) {
   return <p className="pl-6 text-sm font-medium">{name && name !== "?" ? name : fallback}</p>;
 }
 

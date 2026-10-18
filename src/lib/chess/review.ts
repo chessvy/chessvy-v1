@@ -43,18 +43,18 @@ export function parsePgn(pgn: string): { moves: Move[]; headers: Record<string, 
 }
 
 function isSacrifice(m: Move): boolean {
-  if (m.promotion || m.san.includes("#") || VALUE[m.piece] < 3) return false;
+  if (m.promotion || m.san.includes("#") || VALUE[m.piece]! < 3) return false;
   const after = new Chess(m.after);
   const opp = m.color === "w" ? "b" : "w";
   if (!after.isAttacked(m.to, opp)) return false;
-  const gained = m.captured ? VALUE[m.captured] : 0;
-  return VALUE[m.piece] - gained >= 2;
+  const gained = m.captured ? VALUE[m.captured]! : 0;
+  return VALUE[m.piece]! - gained >= 2;
 }
 
 function uciToSan(fen: string, uci: string): string | null {
   try {
     const c = new Chess(fen);
-    return c.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] }).san;
+    const p = uci[4]; return c.move(p ? { from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: p } : { from: uci.slice(0, 2), to: uci.slice(2, 4) }).san;
   } catch {
     return null;
   }
@@ -65,17 +65,17 @@ export async function analyzeGame(
   onProgress: (done: number, total: number) => void,
   signal: { cancelled: boolean },
 ): Promise<GameReview> {
-  const fens = [moves[0].before, ...moves.map((m) => m.after)];
+  const fens: string[] = [moves[0]!.before, ...moves.map((m) => m.after)];
   const engine = new Engine();
   const stm: { best: number; second: number | null; move: string | null }[] = [];
   try {
     for (let i = 0; i < fens.length; i++) {
       if (signal.cancelled) throw new Error("cancelled");
-      const c = new Chess(fens[i]);
+      const c = new Chess(fens[i]!);
       if (c.isCheckmate()) stm.push({ best: -MATE_SCORE, second: null, move: null });
       else if (c.isGameOver()) stm.push({ best: 0, second: null, move: null });
       else {
-        const lines = await engine.analyse(fens[i], ENGINE_DEPTH);
+        const lines = await engine.analyse(fens[i]!, ENGINE_DEPTH);
         stm.push({ best: lines[0]?.score ?? 0, second: lines[1]?.score ?? null, move: lines[0]?.move ?? null });
       }
       onProgress(i + 1, fens.length);
@@ -84,20 +84,20 @@ export async function analyzeGame(
     engine.terminate();
   }
 
-  const evals = fens.map((f, i) => (f.split(" ")[1] === "w" ? stm[i].best : -stm[i].best));
+  const evals = fens.map((f, i) => (f.split(" ")[1] === "w" ? stm[i]!.best : -stm[i]!.best));
   const out: AnalyzedMove[] = [];
   let prevLoss = 0;
   const acc: { w: number[]; b: number[] } = { w: [], b: [] };
   moves.forEach((m, i) => {
-    const bestCp = stm[i].best;
-    const playedCp = -stm[i + 1].best;
+    const bestCp = stm[i]!.best;
+    const playedCp = -stm[i + 1]!.best;
     const uci = m.from + m.to + (m.promotion ?? "");
-    const playedIsBest = stm[i].move === uci;
+    const playedIsBest = stm[i]!.move === uci;
     const loss = playedIsBest ? 0 : winLoss(bestCp, playedCp);
     const classification = classifyMove({
       bestCp,
       playedCp,
-      secondCp: stm[i].second,
+      secondCp: stm[i]!.second,
       playedIsBest,
       isSacrifice: isSacrifice(m),
       opponentPrevLoss: prevLoss,
@@ -109,8 +109,8 @@ export async function analyzeGame(
       san: m.san,
       to: m.to,
       classification,
-      bestMoveUci: stm[i].move,
-      bestMoveSan: stm[i].move ? uciToSan(fens[i], stm[i].move!) : null,
+      bestMoveUci: stm[i]!.move,
+      bestMoveSan: stm[i]!.move ? uciToSan(fens[i]!, stm[i]!.move!) : null,
       loss,
       accuracy: a,
     });
