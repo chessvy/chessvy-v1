@@ -5,6 +5,7 @@ import { analyzeGame, parsePgn, ENGINE_DEPTH, type GameReview } from "@/lib/ches
 import { badgeCorner, type Orientation } from "@/lib/chess/badge";
 import { CLASS_LABEL, winChance } from "@/lib/chess/classify";
 import { CLASS_ICON } from "@/lib/chess/icons";
+import { GameImporter } from "./GameImporter";
 
 const START = new Chess().fen();
 const SAMPLE = `[White "Paul Morphy"]
@@ -111,12 +112,14 @@ export function ReviewWorkspace() {
 
   const squareStyles = useMemo(() => {
     const s: Record<string, React.CSSProperties> = {};
+    const fill = (c: string): React.CSSProperties => ({ backgroundImage: `linear-gradient(${c}, ${c})` });
     if (last) {
-      s[last.from] = { background: "var(--board-lastmove)" };
-      s[last.to] = { background: "var(--board-lastmove)" };
+      const c = analyzed ? `var(--cls-${analyzed.classification})` : "var(--board-lastmove)";
+      s[last.from] = fill(c);
+      s[last.to] = fill(c);
     }
     if (selected) {
-      s[selected] = { background: "var(--board-selected)" };
+      s[selected] = fill("var(--board-selected)");
       for (const m of game.moves({ square: selected, verbose: true })) {
         s[m.to] = {
           ...s[m.to],
