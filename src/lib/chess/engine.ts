@@ -2,6 +2,7 @@
 import { MATE_SCORE } from "./classify";
 
 const SF_URL = "https://unpkg.com/stockfish@18.0.8/bin/stockfish-18-lite-single.js";
+const SF_WASM_URL = "https://unpkg.com/stockfish@18.0.8/bin/stockfish-18-lite-single.wasm";
 
 export interface EngineLine {
   move: string; // UCI
@@ -17,7 +18,9 @@ export class Engine {
 
   constructor() {
     const blob = new Blob([`importScripts("${SF_URL}");`], { type: "application/javascript" });
-    this.worker = new Worker(URL.createObjectURL(blob));
+    // The hash carries the wasm location: stockfish.js reads self.location.hash,
+    // which is empty for blob workers and breaks its default wasm path.
+    this.worker = new Worker(URL.createObjectURL(blob) + "#" + encodeURIComponent(SF_WASM_URL));
     this.worker.onmessage = (e) => this.handler?.(String(e.data));
     this.ready = new Promise((resolve, reject) => {
       const t = setTimeout(() => reject(new Error("Engine failed to load")), 30000);
