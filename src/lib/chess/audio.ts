@@ -33,7 +33,7 @@ export class ReviewAudio {
     try { await context.resume(); } catch { return; }
     this.stop();
     const source = context.createBufferSource(), gain = context.createGain();
-    source.buffer = buffer; gain.gain.value = kind === "check" ? 0.85 : 0.6;
+    source.buffer = buffer; gain.gain.value = kind === "check" ? 2.5 : 0.6;
     source.connect(gain); gain.connect(context.destination); source.start(); this.active = source;
   }
   ending() {

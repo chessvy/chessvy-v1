@@ -39,10 +39,19 @@ describe("classification", () => {
   });
   it("only-move sacrifice is genius", () => {
     expect(
-      classifyMove({ ...base, bestCp: 100, playedCp: 100, playedIsBest: true, secondCp: -400, isSacrifice: true }),
+      classifyMove({ ...base, bestCp: 100, playedCp: 100, playedIsBest: true, secondCp: -400, isSacrifice: true, verified: true }),
     ).toBe("genius");
   });
   it("never uses the word Brilliant", () => {
     expect(classifyMove({ ...base, bestCp: 0, playedCp: 0, playedIsBest: true })).not.toBe("brilliant");
+  });
+  it("never awards Genius for an unverified hanging piece", () => {
+    expect(classifyMove({ ...base, bestCp: 100, playedCp: 100, playedIsBest: true, secondCp: -400, isSacrifice: true })).not.toBe("genius");
+  });
+  it("never awards Genius to a non-best sacrifice with a saturated winning score", () => {
+    expect(classifyMove({ ...base, bestCp: 1600, playedCp: 1400, secondCp: 0, isSacrifice: true, verified: true })).not.toBe("genius");
+  });
+  it("never awards Genius in a losing position", () => {
+    expect(classifyMove({ ...base, bestCp: -30, playedCp: -30, playedIsBest: true, secondCp: -400, isSacrifice: true, verified: true })).not.toBe("genius");
   });
 });

@@ -51,6 +51,8 @@ export interface ClassifyInput {
   isSacrifice: boolean;
   /** Win-chance the opponent's previous move gave away (0 if none / first move). */
   opponentPrevLoss: number;
+  /** True only after deeper engine verification and a legal material sacrifice. */
+  verified?: boolean;
 }
 
 export function winLoss(bestCp: number, playedCp: number): number {
@@ -63,8 +65,8 @@ export function classifyMove(i: ClassifyInput): Classification {
   if (i.playedIsBest || loss <= 0.5) {
     const onlyMove =
       i.secondCp !== null && winChance(i.bestCp) - winChance(i.secondCp) >= T.greatGap;
-    if (onlyMove && i.isSacrifice && winChance(i.playedCp) >= T.geniusMinWin) return "genius";
-    if (onlyMove) return "great";
+    if (onlyMove && i.playedIsBest && loss <= 0.5 && i.isSacrifice && i.verified && i.playedCp >= 0 && i.bestCp < 600) return "genius";
+    if (onlyMove && i.playedIsBest && loss <= T.excellent) return "great";
     return "best";
   }
   if (loss <= T.excellent) return "excellent";

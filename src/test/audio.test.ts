@@ -22,7 +22,7 @@ describe("preloaded check audio", () => {
       await audio.play("check");
       await preparing;
       expect(start).toHaveBeenCalledTimes(1);
-      expect(gain.gain.value).toBe(0.85);
+      expect(gain.gain.value).toBe(2.5);
       audio.dispose();
     } finally { vi.unstubAllGlobals(); }
   });
