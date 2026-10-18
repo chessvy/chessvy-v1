@@ -43,7 +43,7 @@ export function parsePgn(pgn: string): { moves: Move[]; headers: Record<string, 
 }
 
 function isSacrifice(m: Move): boolean {
-  if (m.promotion || VALUE[m.piece] < 3) return false;
+  if (m.promotion || m.san.includes("#") || VALUE[m.piece] < 3) return false;
   const after = new Chess(m.after);
   const opp = m.color === "w" ? "b" : "w";
   if (!after.isAttacked(m.to, opp)) return false;
