@@ -1,7 +1,7 @@
-// Stockfish (stockfish.js 10, GPLv3) running in a browser Web Worker.
+// Stockfish 16.1 NNUE (single-threaded wasm) running in a browser Web Worker.
 import { MATE_SCORE } from "./classify";
 
-const SF_URL = "https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js";
+const SF_URL = "https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish-nnue-16-single.js";
 
 export interface EngineLine {
   move: string; // UCI
@@ -13,16 +13,19 @@ export class Engine {
   private worker: Worker;
   private ready: Promise<void>;
   private handler: ((l: string) => void) | null = null;
+  private queue: Promise<unknown> = Promise.resolve();
 
   constructor() {
     const blob = new Blob([`importScripts("${SF_URL}");`], { type: "application/javascript" });
     this.worker = new Worker(URL.createObjectURL(blob));
     this.worker.onmessage = (e) => this.handler?.(String(e.data));
     this.ready = new Promise((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error("Engine failed to load")), 20000);
+      const t = setTimeout(() => reject(new Error("Engine failed to load")), 30000);
       this.handler = (l) => {
         if (l === "uciok") {
           clearTimeout(t);
+          this.send("isready");
+        } else if (l === "readyok") {
           resolve();
         }
       };
@@ -38,7 +41,14 @@ export class Engine {
     this.worker.postMessage(cmd);
   }
 
-  async analyse(fen: string, depth: number, multipv = 2): Promise<EngineLine[]> {
+  /** Serialized: one position at a time so info lines never mix between calls. */
+  analyse(fen: string, depth: number, multipv = 2): Promise<EngineLine[]> {
+    const run = this.queue.then(() => this.analyseNow(fen, depth, multipv));
+    this.queue = run.catch(() => {});
+    return run;
+  }
+
+  private async analyseNow(fen: string, depth: number, multipv: number): Promise<EngineLine[]> {
     await this.ready;
     return new Promise((resolve) => {
       const lines = new Map<number, EngineLine>();

@@ -8,9 +8,9 @@ import { badgeCorner, type Orientation } from "@/lib/chess/badge";
 import { CLASS_LABEL, winChance } from "@/lib/chess/classify";
 import { CLASS_ICON } from "@/lib/chess/icons";
 import { nextPlaybackPly, PLAYBACK_INTERVAL, moveSound, formatEvaluation } from "@/lib/chess/playback";
-import moveAudio from "@/assets/sounds/move.wav.asset.json";
-import captureAudio from "@/assets/sounds/capture.wav.asset.json";
-import checkAudio from "@/assets/sounds/check.wav.asset.json";
+import moveAudio from "@/assets/sounds/move.mp3.asset.json";
+import captureAudio from "@/assets/sounds/capture.mp3.asset.json";
+import checkAudio from "@/assets/sounds/check.mp3.asset.json";
 import { GameImporter } from "./GameImporter";
 import { PlayerAvatar, PlatformLogo, type Platform } from "./PlayerAvatar";
 
