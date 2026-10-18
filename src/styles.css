@@ -112,8 +112,18 @@
   &:hover { background: var(--color-accent); }
 }
 
-/* Nudge pieces down slightly to clear the badge corner. */
-.board-frame [data-square] > div { transform: translateY(5%); }
+/* Move-classification square tints (semi-transparent over the board color). */
+:root {
+  --cls-genius: oklch(0.7 0.13 200 / 0.6);
+  --cls-great: oklch(0.38 0.15 262 / 0.75);
+  --cls-best: oklch(0.62 0.15 150 / 0.55);
+  --cls-excellent: oklch(0.7 0.15 140 / 0.5);
+  --cls-good: oklch(0.72 0.12 135 / 0.45);
+  --cls-inaccuracy: oklch(0.82 0.16 95 / 0.55);
+  --cls-mistake: oklch(0.72 0.17 60 / 0.6);
+  --cls-miss: oklch(0.6 0.2 20 / 0.55);
+  --cls-blunder: oklch(0.55 0.22 25 / 0.65);
+}
 
 @keyframes badge-pop {
   0% { transform: scale(0.3); opacity: 0; }

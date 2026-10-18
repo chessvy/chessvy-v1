@@ -5,6 +5,7 @@ import { analyzeGame, parsePgn, ENGINE_DEPTH, type GameReview } from "@/lib/ches
 import { badgeCorner, type Orientation } from "@/lib/chess/badge";
 import { CLASS_LABEL, winChance } from "@/lib/chess/classify";
 import { CLASS_ICON } from "@/lib/chess/icons";
+import { GameImporter } from "./GameImporter";
 
 const START = new Chess().fen();
 const SAMPLE = `[White "Paul Morphy"]
@@ -31,10 +32,10 @@ export function ReviewWorkspace() {
   const last = ply > 0 ? moves[ply - 1] : null;
   const analyzed = review && ply > 0 ? review.moves[ply - 1] : null;
 
-  const load = () => {
+  const load = (text: string) => {
     setError(null);
     try {
-      const r = parsePgn(pgn);
+      const r = parsePgn(text);
       cancelRef.current.cancelled = true;
       setMoves(r.moves);
       setHeaders(r.headers);
@@ -111,12 +112,14 @@ export function ReviewWorkspace() {
 
   const squareStyles = useMemo(() => {
     const s: Record<string, React.CSSProperties> = {};
+    const fill = (c: string): React.CSSProperties => ({ backgroundImage: `linear-gradient(${c}, ${c})` });
     if (last) {
-      s[last.from] = { background: "var(--board-lastmove)" };
-      s[last.to] = { background: "var(--board-lastmove)" };
+      const c = analyzed ? `var(--cls-${analyzed.classification})` : "var(--board-lastmove)";
+      s[last.from] = fill(c);
+      s[last.to] = fill(c);
     }
     if (selected) {
-      s[selected] = { background: "var(--board-selected)" };
+      s[selected] = fill("var(--board-selected)");
       for (const m of game.moves({ square: selected, verbose: true })) {
         s[m.to] = {
           ...s[m.to],
@@ -131,7 +134,7 @@ export function ReviewWorkspace() {
       if (king) s[king.square] = { ...s[king.square], backgroundImage: "var(--board-check)" };
     }
     return s;
-  }, [last, selected, game]);
+  }, [last, selected, game, analyzed]);
 
   const onSquareClick = ({ square }: { square: string }) => {
     const sq = square as Square;
@@ -181,8 +184,12 @@ export function ReviewWorkspace() {
                     src={CLASS_ICON[analyzed.classification]}
                     alt={CLASS_LABEL[analyzed.classification]}
                     title={CLASS_LABEL[analyzed.classification]}
-                    className="badge-pop absolute w-[38%] drop-shadow-md"
-                    style={{ [corner.vertical]: "3%", [corner.horizontal]: "3%" }}
+                    className="badge-pop absolute z-10 w-[42%] drop-shadow-md"
+                    style={{
+                      [corner.vertical]: 0,
+                      [corner.horizontal]: 0,
+                      translate: `${corner.horizontal === "right" ? "50%" : "-50%"} ${corner.vertical === "top" ? "-50%" : "50%"}`,
+                    }}
                   />
                 </div>
               </div>
@@ -219,32 +226,8 @@ export function ReviewWorkspace() {
       </section>
 
       <aside className="flex flex-col gap-4">
-        <div className="panel">
-          <h2 className="font-display text-lg font-semibold">Import a game</h2>
-          <textarea
-            value={pgn}
-            onChange={(e) => setPgn(e.target.value)}
-            placeholder="Paste PGN here"
-            className="mt-3 h-32 w-full resize-none rounded-md border border-input bg-background p-3 font-mono text-xs placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button className="btn-primary" onClick={load} disabled={!pgn.trim()}>Load PGN</button>
-            <label className="btn-ghost cursor-pointer">
-              Upload file
-              <input
-                type="file"
-                accept=".pgn,text/plain"
-                className="hidden"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  if (f) setPgn(await f.text());
-                }}
-              />
-            </label>
-            <button className="btn-ghost" onClick={() => setPgn(SAMPLE)}>Try sample</button>
-          </div>
-          {error && <p role="alert" className="mt-3 rounded-md bg-destructive/30 px-3 py-2 text-sm">{error}</p>}
-        </div>
+        <GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} />
+        {error && <p role="alert" className="rounded-md bg-destructive/30 px-3 py-2 text-sm">{error}</p>}
 
         <div className="panel">
           <div className="flex items-center justify-between gap-3">
