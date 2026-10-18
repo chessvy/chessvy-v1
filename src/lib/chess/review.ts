@@ -74,6 +74,7 @@ export async function analyzeGame(
   moves: Move[],
   onProgress: (done: number, total: number, evals: number[]) => void,
   signal: { cancelled: boolean },
+  depth: number = ENGINE_DEPTH,
 ): Promise<GameReview> {
   const first = moves[0];
   if (!first) throw new Error("No moves to review.");
@@ -91,7 +92,7 @@ export async function analyzeGame(
       if (c.isCheckmate()) stm.push({ best: -MATE_SCORE, second: null, move: null });
       else if (c.isGameOver()) stm.push({ best: 0, second: null, move: null });
       else {
-        const lines = await engine.analyse(fen, ENGINE_DEPTH);
+        const lines = await engine.analyse(fen, depth);
         const primary = lines[0];
         if (!primary || !Number.isFinite(primary.score)) throw new Error("The engine returned no reliable evaluation. Run review again.");
         stm.push({ best: primary.score, second: lines[1]?.score ?? null, move: primary.move });
@@ -108,8 +109,8 @@ export async function analyzeGame(
       const uci = move.from + move.to + (move.promotion ?? "");
       if (before.move !== uci || before.best >= 600 || -after.best < 0) continue;
       if (signal.cancelled) throw new Error("cancelled");
-      const deepBefore = await engine.analyse(move.before, VERIFICATION_DEPTH);
-      const deepAfter = await engine.analyse(move.after, VERIFICATION_DEPTH);
+      const deepBefore = await engine.analyse(move.before, Math.max(VERIFICATION_DEPTH, depth + 4));
+      const deepAfter = await engine.analyse(move.after, Math.max(VERIFICATION_DEPTH, depth + 4));
       const first = deepBefore[0], next = deepAfter[0];
       if (!first || !next) continue;
       stm[i] = { best: first.score, second: deepBefore[1]?.score ?? null, move: first.move };
