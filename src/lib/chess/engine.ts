@@ -1,7 +1,7 @@
-// Stockfish 16.1 NNUE (single-threaded wasm) running in a browser Web Worker.
+// Stockfish 18 lite (single-threaded wasm) running in a browser Web Worker.
 import { MATE_SCORE } from "./classify";
 
-const SF_URL = "https://cdn.jsdelivr.net/npm/stockfish@16.1.0/src/stockfish-nnue-16-single.js";
+const SF_URL = "https://unpkg.com/stockfish@18.0.8/bin/stockfish-18-lite-single.js";
 
 export interface EngineLine {
   move: string; // UCI
