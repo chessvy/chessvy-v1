@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "001c01af-7ebc-4965-98dc-452b219d19ea",
-  "project_id": "edf315dc-bc16-4591-93d7-91aafdbd1188",
-  "url": "/__l5e/assets-v1/001c01af-7ebc-4965-98dc-452b219d19ea/miss-cross.png",
-  "r2_key": "a/v1/edf315dc-bc16-4591-93d7-91aafdbd1188/001c01af-7ebc-4965-98dc-452b219d19ea/miss-cross.png",
-  "original_filename": "miss-cross.png",
-  "size": 42359,
   "content_type": "image/png",
-  "created_at": "2026-10-18T12:56:54Z"
+  "created_at": "2026-10-18T12:56:54Z",
+  "original_filename": "miss-cross.png",
+  "project_id": "c72ed00e-c706-4874-b674-4473c89c625f",
+  "r2_key": "a/v1/c72ed00e-c706-4874-b674-4473c89c625f/001c01af-7ebc-4965-98dc-452b219d19ea/miss-cross.png",
+  "size": 42359,
+  "url": "/__l5e/assets-v1/001c01af-7ebc-4965-98dc-452b219d19ea/miss-cross.png",
+  "version": 1
 }
