@@ -2,6 +2,7 @@
 // lost by the mover, which behaves far better than raw centipawns at extreme evals.
 
 export type Classification =
+  | "book"
   | "genius"
   | "great"
   | "best"
@@ -75,6 +76,7 @@ export function classifyMove(i: ClassifyInput): Classification {
 }
 
 export const CLASS_LABEL: Record<Classification, string> = {
+  book: "Book move",
   genius: "Genius",
   great: "Great",
   best: "Best",
