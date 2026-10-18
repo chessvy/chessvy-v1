@@ -14,3 +14,4 @@
 - Completed position evaluations stream through the review progress callback, preserving white-perspective scores for the graph and bar.
 - Public Chess.com avatars are fetched client-side and cached; platforms without public avatar fields use neutral player icons rather than invented profile photos.
 - Board coordinates occupy separate grid tracks outside the squares so pieces remain unobstructed on all device sizes.
+- Review effects use a shared icon-sized badge wrapper and a preloaded Web Audio manager; this keeps celebrations off pieces and avoids delayed sound downloads during playback.
