@@ -1,4 +1,9 @@
 # Chessvy review improvements
+- [ ] Louder Lichess check audio and king outcome icons
+- [ ] Conservative, deeper-verified Genius classifications
+- [ ] Review / Insights / Report sections with game-specific summaries
+- [ ] Remove completion popup, add Copy PGN and richer motion
+- [ ] Test classification rules and verify full desktop/mobile flow
 - [x] Stabilize Stockfish loading and deepen consistent analysis
 - [x] Neutral evaluation graph with classification dots
 - [x] Estimated performance and verified opening-book moves
