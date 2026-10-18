@@ -327,7 +327,7 @@ function MoveRow({ r, moves, review, ply, setPly }: { r: number; moves: Move[]; 
 function EvalGraph({ evals, ply, onPick }: { evals: number[]; ply: number; onPick: (n: number) => void }) {
   const w = 300, h = 80;
   const pts = evals.map((e, i) => [(i / Math.max(1, evals.length - 1)) * w, h - (winChance(e) / 100) * h]);
-  const d = `M0,${h} ` + pts.map((p) => `L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ") + ` L${w},${h} Z`;
+  const d = `M0,${h} ` + pts.map((p) => `L${p[0]!.toFixed(1)},${p[1]!.toFixed(1)}`).join(" ") + ` L${w},${h} Z`;
   return (
     <svg
       viewBox={`0 0 ${w} ${h}`}
