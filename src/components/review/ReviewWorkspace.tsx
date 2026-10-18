@@ -14,6 +14,8 @@ import { GameImporter } from "./GameImporter";
 import { PlayerAvatar, PlatformLogo, type Platform } from "./PlayerAvatar";
 
 const START = new Chess().fen();
+// SVG presentation attributes cannot resolve CSS variables, so the arrow colour is a literal.
+const BEST_ARROW = "rgb(80, 180, 120)";
 const SAMPLE = `[White "Paul Morphy"]
 [Black "Duke Karl / Count Isouard"]
 [Result "1-0"]
@@ -158,7 +160,7 @@ export function ReviewWorkspace() {
   }).filter(Boolean) as { color: string; outcome: "win" | "draw" | "defeat"; col: number; row: number }[] : [];
   useEffect(() => { if (kingOutcomes.length && sound) audioRef.current?.ending(); }, [kingOutcomes.length > 0]);
   const bestUci = showArrows ? review?.moves[ply]?.bestMoveUci : null;
-  const arrows = bestUci ? [{ startSquare: bestUci.slice(0, 2), endSquare: bestUci.slice(2, 4), color: "var(--arrow-best)" }] : [];
+  const arrows = bestUci ? [{ startSquare: bestUci.slice(0, 2), endSquare: bestUci.slice(2, 4), color: BEST_ARROW }] : [];
 
   return <div className="workspace-grid">
     <section className="min-w-0">
