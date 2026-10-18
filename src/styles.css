@@ -115,6 +115,7 @@
 /* Move-classification square tints (semi-transparent over the board color). */
 :root {
   --cls-genius: oklch(0.7 0.13 200 / 0.6);
+  --cls-book: oklch(0.67 0.07 80 / 0.7);
   --cls-great: oklch(0.38 0.15 262 / 0.75);
   --cls-best: oklch(0.62 0.15 150 / 0.55);
   --cls-excellent: oklch(0.7 0.15 140 / 0.5);
@@ -152,25 +153,23 @@
 @media (min-width: 1024px) {
   .workspace-grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 2.5rem; }
 }
-/* Genius / Great move celebrations: an expanding ring burst from the badge
-   plus a sustained glow, like the lichess/chess.com review feel. */
+/* Rings are contained by the icon, never by the piece or square. */
 @keyframes special-ring {
-  0% { transform: scale(0.35); opacity: 0.95; }
-  70% { opacity: 0.5; }
-  100% { transform: scale(2.6); opacity: 0; }
+  0% { transform: scale(0.9); opacity: 0.85; }
+  100% { transform: scale(1.45); opacity: 0; }
 }
 .special-ring {
   position: absolute;
-  inset: -18%;
+  inset: 0;
   border-radius: 9999px;
-  border: 3px solid var(--ring-color);
-  animation: special-ring 950ms cubic-bezier(.2, .6, .3, 1) both;
+  border: 2px solid var(--ring-color);
+  animation: special-ring 650ms ease-out both;
 }
 .special-ring.delay { animation-delay: 180ms; }
 @keyframes special-glow {
   0% { filter: drop-shadow(0 0 0 transparent); }
-  35% { filter: drop-shadow(0 0 12px var(--ring-color)); }
-  100% { filter: drop-shadow(0 0 4px var(--ring-color)); }
+  35% { filter: drop-shadow(0 0 3px var(--ring-color)); }
+  100% { filter: drop-shadow(0 0 0 transparent); }
 }
 .special-badge { animation: badge-pop 420ms cubic-bezier(.2, .8, .3, 1.35) both, special-glow 1200ms ease-out both; }
 @media (prefers-reduced-motion: reduce) {

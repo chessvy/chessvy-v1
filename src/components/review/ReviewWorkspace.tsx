@@ -1,21 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, type Move, type Square } from "chess.js";
-import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Play, Pause, RotateCw, Volume2, VolumeX, ScanLine, LoaderCircle, Square as Stop } from "lucide-react";
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Play, Pause, RotateCw, Volume2, VolumeX, ScanLine, LoaderCircle, Square as Stop, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { analyzeGame, parsePgn, ENGINE_DEPTH, type GameReview } from "@/lib/chess/review";
 import { badgeCorner, type Orientation } from "@/lib/chess/badge";
 import { CLASS_LABEL, winChance } from "@/lib/chess/classify";
-import { CLASS_ICON } from "@/lib/chess/icons";
+import { CLASS_ICON, RESULT_ICON } from "@/lib/chess/icons";
 import { nextPlaybackPly, PLAYBACK_INTERVAL, moveSound, formatEvaluation } from "@/lib/chess/playback";
-import moveAudio from "@/assets/sounds/move.mp3.asset.json";
-import captureAudio from "@/assets/sounds/capture.mp3.asset.json";
-import checkAudio from "@/assets/sounds/check.mp3.asset.json";
+import { ReviewAudio } from "@/lib/chess/audio";
+import { gameOutcome, NEXT_GAME_DELAY } from "@/lib/chess/outcome";
 import { GameImporter } from "./GameImporter";
 import { PlayerAvatar, PlatformLogo, type Platform } from "./PlayerAvatar";
 
 const START = new Chess().fen();
-const SOUNDS = { move: moveAudio.url, capture: captureAudio.url, check: checkAudio.url };
 const SAMPLE = `[White "Paul Morphy"]
 [Black "Duke Karl / Count Isouard"]
 [Result "1-0"]
@@ -39,7 +37,9 @@ export function ReviewWorkspace() {
   const [sound, setSound] = useState(true);
   const cancelRef = useRef({ cancelled: false });
   const previousPly = useRef(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<ReviewAudio | null>(null);
+  const importerRef = useRef<HTMLDivElement | null>(null);
+  const [nextGamePrompt, setNextGamePrompt] = useState(false);
   const fen = ply === 0 ? (moves[0]?.before ?? START) : (moves[ply - 1]?.after ?? START);
   const game = useMemo(() => new Chess(fen), [fen]);
   const last = ply > 0 ? moves[ply - 1] : null;
@@ -47,27 +47,41 @@ export function ReviewWorkspace() {
   const jump = useCallback((n: number) => { setPlaying(false); setSelected(null); setPromo(null); setPly(n); }, []);
 
   useEffect(() => {
+    const audio = new ReviewAudio(); audioRef.current = audio;
+    void audio.prepare();
+    const unlock = () => audio.unlock();
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); audio.dispose(); audioRef.current = null; };
+  }, []);
+  useEffect(() => {
     if (ply !== previousPly.current && ply > 0 && sound) {
       const move = moves[ply - 1];
-      if (move) {
-        audioRef.current?.pause();
-        const audio = new Audio(SOUNDS[moveSound(move)]);
-        audio.volume = 0.55; audioRef.current = audio;
-        void audio.play().catch(() => {});
-      }
+      if (move) void audioRef.current?.play(moveSound(move));
     }
     previousPly.current = ply;
   }, [ply, sound, moves]);
+  useEffect(() => {
+    if (!review) return;
+    if (sound) audioRef.current?.ending();
+    const timer = setTimeout(() => setNextGamePrompt(true), NEXT_GAME_DELAY);
+    return () => clearTimeout(timer);
+  }, [review]);
+  const reviewAnother = () => {
+    setNextGamePrompt(false);
+    importerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    importerRef.current?.querySelector<HTMLTextAreaElement>("textarea")?.focus({ preventScroll: true });
+  };
   useEffect(() => {
     if (!playing) return;
     if (ply >= moves.length) { setPlaying(false); return; }
     const timer = setTimeout(() => setPly(p => nextPlaybackPly(p, moves.length)), PLAYBACK_INTERVAL);
     return () => clearTimeout(timer);
   }, [playing, ply, moves.length]);
-  useEffect(() => () => { cancelRef.current.cancelled = true; audioRef.current?.pause(); }, []);
+  useEffect(() => () => { cancelRef.current.cancelled = true; audioRef.current?.stop(); }, []);
 
   const load = (text: string, source?: Platform) => {
-    setError(null);
+    setError(null); setNextGamePrompt(false);
     try {
       const r = parsePgn(text);
       cancelRef.current.cancelled = true;
@@ -81,7 +95,7 @@ export function ReviewWorkspace() {
     if (!moves.length) return;
     cancelRef.current.cancelled = true;
     const signal = { cancelled: false }; cancelRef.current = signal;
-    setPlaying(false); setError(null); setReview(null); setPartial([]);
+    setPlaying(false); setNextGamePrompt(false); setError(null); setReview(null); setPartial([]);
     setProgress({ done: 0, total: moves.length + 1 });
     try {
       const r = await analyzeGame(moves, (done, total, evals) => {
@@ -152,9 +166,9 @@ export function ReviewWorkspace() {
             onSquareClick: ({ square }) => { const sq = square as Square; if (selected && selected !== sq && playMove(selected, sq)) return; const p = game.get(sq); setSelected(p && p.color === game.turn() ? sq : null); }, animationDurationInMs: 180 }} />
           {analyzed && corner && <div key={`${ply}-${analyzed.classification}`} className="pointer-events-none absolute inset-0 grid grid-cols-8 grid-rows-8">
             <div className="relative" style={{ gridColumn: corner.col + 1, gridRow: corner.row + 1 }}>
-              {special && <span className="special-ring" style={{ "--ring-color": `var(--cls-${analyzed.classification})` } as React.CSSProperties} />}
-              {special && <span className="special-ring delay" style={{ "--ring-color": `var(--cls-${analyzed.classification})` } as React.CSSProperties} />}
-              <img src={CLASS_ICON[analyzed.classification]} alt={CLASS_LABEL[analyzed.classification]} title={CLASS_LABEL[analyzed.classification]} className={`badge-pop absolute z-10 w-[42%] ${special ? "special-badge" : ""}`} style={{ [corner.vertical]: 0, [corner.horizontal]: 0, translate: `${corner.horizontal === "right" ? "50%" : "-50%"} ${corner.vertical === "top" ? "-50%" : "50%"}`, "--ring-color": `var(--cls-${analyzed.classification})` } as React.CSSProperties} />
+              <div className="absolute z-10 w-[42%]" style={{ [corner.vertical]: 0, [corner.horizontal]: 0, translate: `${corner.horizontal === "right" ? "50%" : "-50%"} ${corner.vertical === "top" ? "-50%" : "50%"}` }}>
+                <ReviewBadge classification={analyzed.classification} special={special} />
+              </div>
             </div>
           </div>}
           {promo && <div className="absolute inset-0 z-20 flex items-center justify-center bg-overlay"><div className="flex gap-2 rounded-md border border-border bg-card p-3">{(["q", "r", "b", "n"] as const).map(p => <Button key={p} variant="secondary" onClick={() => { const pr = promo; setPromo(null); playMove(pr.from, pr.to, p); }}>{{ q: "♛", r: "♜", b: "♝", n: "♞" }[p]}<span className="sr-only">{{ q: "Queen", r: "Rook", b: "Bishop", n: "Knight" }[p]}</span></Button>)}</div></div>}
@@ -171,26 +185,29 @@ export function ReviewWorkspace() {
           <IconControl label="Next move" disabled={ply >= moves.length} onClick={() => jump(Math.min(moves.length, ply + 1))}><ChevronRight /></IconControl>
           <IconControl label="Last move" disabled={ply >= moves.length} onClick={() => jump(moves.length)}><ChevronLast /></IconControl>
         </div>
-        <IconControl label={sound ? "Mute sounds" : "Enable sounds"} onClick={() => { if (sound) audioRef.current?.pause(); setSound(!sound); }}>{sound ? <Volume2 /> : <VolumeX />}</IconControl>
+        <IconControl label={sound ? "Mute sounds" : "Enable sounds"} onClick={() => { if (sound) audioRef.current?.stop(); setSound(!sound); }}>{sound ? <Volume2 /> : <VolumeX />}</IconControl>
       </div>
+      {review && ply === moves.length && gameOutcome(headers["Result"], orientation) && <div key={`ending-${orientation}`} role="status" className="badge-pop mt-3 flex items-center justify-center gap-3"><img className="h-8 w-8" src={RESULT_ICON[gameOutcome(headers["Result"], orientation) ?? "draw"]} alt="" /><span className="text-sm font-medium">{headers["Result"] === "1/2-1/2" ? "Draw" : `${headers[headers["Result"] === "1-0" ? "White" : "Black"] ?? (headers["Result"] === "1-0" ? "White" : "Black")} wins`}</span></div>}
       <p className="mt-2 text-center text-xs text-foreground/40">{ply} / {moves.length} {last ? `· ${last.san}` : ""}</p>
     </section>
     <aside className="min-w-0 space-y-5">
       <section>
         <div className="flex items-center justify-between"><h2 className="font-display text-xl font-semibold">Game review</h2>{review && <span className="text-xs text-primary">Complete</span>}</div>
-        {(progress || evals.length > 0) && <EvalGraph evals={evals} total={moves.length + 1} ply={ply} onPick={jump} />}
+        {(progress || evals.length > 0) && <EvalGraph review={review} evals={evals} total={moves.length + 1} ply={ply} onPick={jump} />}
         <div className="mt-3 flex items-center gap-2">
           <Button className="flex-1" onClick={runReview} disabled={!moves.length || !!progress}>{progress ? <LoaderCircle className="animate-spin" /> : <ScanLine />}{progress ? "Reviewing…" : review ? "Run again" : "Run review"}</Button>
           {progress && <IconControl label="Stop review" onClick={() => { cancelRef.current.cancelled = true; setProgress(null); }}><Stop /></IconControl>}
         </div>
         {progress && <div className="mt-3" role="status"><div className="h-1 overflow-hidden rounded-sm bg-secondary"><div className="h-full bg-primary transition-all" style={{ width: `${progress.done / progress.total * 100}%` }} /></div><p className="mt-2 text-xs text-foreground/50">Depth {ENGINE_DEPTH} · {progress.done}/{progress.total} positions · {Math.round(progress.done / progress.total * 100)}%</p></div>}
-        {review && <div className="mt-4 grid grid-cols-2 divide-x divide-border border-y border-border py-3"><Stat label="White accuracy" value={review.accuracy.white} /><Stat label="Black accuracy" value={review.accuracy.black} /></div>}
-        {analyzed && <div key={ply} className="mt-4 flex items-center gap-3 border-l-2 border-primary pl-3"><img src={CLASS_ICON[analyzed.classification]} alt="" className={`h-9 w-9 ${special ? "badge-pop" : ""}`} /><div className="min-w-0 text-sm"><p className="font-semibold">{analyzed.san} · {CLASS_LABEL[analyzed.classification]}</p>{analyzed.bestMoveSan && analyzed.bestMoveSan !== analyzed.san && <p className="mt-1 text-xs text-foreground/60">Best move: {analyzed.bestMoveSan}</p>}</div></div>}
+        {review && <div className="mt-4 grid grid-cols-2 divide-x divide-border border-y border-border py-3"><Stat label="White accuracy" value={review.accuracy.white} performance={review.performance.white} /><Stat label="Black accuracy" value={review.accuracy.black} performance={review.performance.black} /></div>}
+        {analyzed && <div key={ply} className="mt-4 flex items-center gap-3 border-l-2 border-primary pl-3"><div className="h-9 w-9 shrink-0"><ReviewBadge classification={analyzed.classification} special={special} /></div><div className="min-w-0 text-sm"><p className="font-semibold">{analyzed.san} · {CLASS_LABEL[analyzed.classification]}</p>{analyzed.bestMoveSan && analyzed.bestMoveSan !== analyzed.san && <p className="mt-1 text-xs text-foreground/60">Best move: {analyzed.bestMoveSan}</p>}</div></div>}
         {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
       </section>
-      <GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} />
+      {!!moves.length && <Button variant="outline" className="w-full" onClick={reviewAnother}><Plus />Review another game</Button>}
+      <div ref={importerRef}><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} /></div>
       {!!moves.length && <section className="border-t border-border pt-4"><h2 className="mb-3 font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers["Result"] ?? "*"}</span></h2><ol className="grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} />)}</ol></section>}
     </aside>
+    {nextGamePrompt && <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay px-4" onClick={() => setNextGamePrompt(false)}><section role="dialog" aria-modal="true" aria-label="Review complete" className="relative w-full max-w-sm rounded-md border border-border bg-card p-6" onClick={e => e.stopPropagation()}><div className="absolute right-2 top-2"><IconControl label="Close review complete" onClick={() => setNextGamePrompt(false)}><X /></IconControl></div><h2 className="font-display text-xl font-semibold">Review complete</h2><p className="mt-2 text-sm text-foreground/60">Ready for your next game?</p><Button className="mt-5 w-full" onClick={reviewAnother}><Plus />Review another game</Button></section></div>}
   </div>;
 }
 function IconControl({ label, onClick, children, disabled, active }: { label: string; onClick: () => void; children: ReactNode; disabled?: boolean; active?: boolean }) {
@@ -204,8 +221,8 @@ function MoveRow({ r, moves, review, ply, setPly }: { r: number; moves: Move[]; 
   const cell = (i: number) => { const m = moves[i]; if (!m) return <span />; const a = review?.moves[i]; return <Button variant={ply === i + 1 ? "secondary" : "ghost"} onClick={() => setPly(i + 1)} className="h-8 justify-start gap-1.5 px-2">{a && <img src={CLASS_ICON[a.classification]} alt={CLASS_LABEL[a.classification]} className="h-4 w-4" />}{m.san}</Button>; };
   return <><span className="self-center text-xs text-foreground/40">{r + 1}.</span>{cell(r * 2)}{cell(r * 2 + 1)}</>;
 }
-function Stat({ label, value }: { label: string; value: number | null }) { return <div className="px-3"><p className="text-xs text-foreground/50">{label}</p><p className="mt-1 font-display text-2xl font-semibold">{value === null ? "—" : `${value.toFixed(1)}%`}</p></div>; }
-function EvalGraph({ evals, total, ply, onPick }: { evals: number[]; total: number; ply: number; onPick: (n: number) => void }) {
+function Stat({ label, value, performance }: { label: string; value: number | null; performance: number | null }) { return <div className="px-3"><p className="text-xs text-foreground/50">{label}</p><p className="mt-1 font-display text-2xl font-semibold">{value === null ? "—" : `${value.toFixed(1)}%`}</p><p className="mt-2 text-xs text-foreground/60" title="Game-only heuristic, not a calibrated Elo rating">Estimated play: {performance === null ? "—" : `~${performance} Elo`}</p></div>; }
+function EvalGraph({ review, evals, total, ply, onPick }: { review: GameReview | null; evals: number[]; total: number; ply: number; onPick: (n: number) => void }) {
   const w = 360, h = 110;
   const pts = evals.map((e, i) => ({ x: i / Math.max(1, total - 1) * w, y: h - winChance(e) / 100 * h }));
   const last = pts.at(-1), current = pts[ply];
@@ -215,6 +232,14 @@ function EvalGraph({ evals, total, ply, onPick }: { evals: number[]; total: numb
   return <div className="mt-4"><div className="mb-2 flex justify-between text-xs text-foreground/50"><span>Evaluation</span><span>{formatEvaluation(evals[ply] ?? null)}</span></div>
     <svg role="slider" tabIndex={evals.length ? 0 : -1} aria-label="Evaluation graph" aria-valuemin={0} aria-valuemax={Math.max(0, evals.length - 1)} aria-valuenow={Math.min(ply, Math.max(0, evals.length - 1))} viewBox={`0 0 ${w} ${h}`} className="w-full cursor-crosshair rounded-sm bg-eval-black" onClick={e => { if (!evals.length) return; const r = e.currentTarget.getBoundingClientRect(); pick(Math.round((e.clientX - r.left) / r.width * (total - 1))); }} onKeyDown={e => { if (!evals.length) return; if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); pick(ply + (e.key === "ArrowRight" ? 1 : -1)); } }}>
       <path d={area} className="fill-eval-white" opacity={0.85} /><line x1={0} x2={w} y1={h / 2} y2={h / 2} className="stroke-foreground" opacity={0.2} strokeDasharray="3 3" />
-      <path d={line} className="stroke-primary" fill="none" strokeWidth={2} />{current && <line x1={current.x} x2={current.x} y1={0} y2={h} className="stroke-primary" strokeWidth={2} />}
+      <path d={line} className="stroke-foreground" fill="none" strokeWidth={2} />{current && <line x1={current.x} x2={current.x} y1={0} y2={h} className="stroke-foreground" strokeWidth={2} />}
+      {review?.moves.map((move, i) => { const point = pts[i + 1]; return point ? <circle key={i} cx={point.x} cy={point.y} r={3} style={{ fill: `var(--cls-${move.classification})` }} className="stroke-eval-black" strokeWidth={0.8}><title>{move.san} · {CLASS_LABEL[move.classification]} · {formatEvaluation(evals[i + 1] ?? null)}</title></circle> : null; })}
     </svg><div className="mt-1 flex justify-between text-xs text-foreground/40"><span>Start</span><span>{Math.ceil((total - 1) / 2)} moves</span></div></div>;
+}
+
+function ReviewBadge({ classification, special }: { classification: keyof typeof CLASS_ICON; special: boolean }) {
+  return <span className="relative block aspect-square w-full" style={{ "--ring-color": `var(--cls-${classification})` } as React.CSSProperties}>
+    {special && <span className="special-ring" />}
+    <img src={CLASS_ICON[classification]} alt={CLASS_LABEL[classification]} title={CLASS_LABEL[classification]} className={`relative block h-full w-full badge-pop ${special ? "special-badge" : ""}`} />
+  </span>;
 }
