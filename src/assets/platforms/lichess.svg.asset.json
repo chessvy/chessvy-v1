@@ -1,11 +1,11 @@
 {
+  "version": 1,
   "asset_id": "595091a4-6d77-42a3-b322-a245b1984a71",
-  "content_type": "image/svg+xml",
-  "created_at": "2026-10-18T13:23:20Z",
-  "original_filename": "lichess.svg",
-  "project_id": "266342f6-ada7-4d04-a060-1c990f471dce",
-  "r2_key": "a/v1/266342f6-ada7-4d04-a060-1c990f471dce/595091a4-6d77-42a3-b322-a245b1984a71/lichess.svg",
-  "size": 613,
+  "project_id": "c72ed00e-c706-4874-b674-4473c89c625f",
   "url": "/__l5e/assets-v1/595091a4-6d77-42a3-b322-a245b1984a71/lichess.svg",
-  "version": 1
+  "r2_key": "a/v1/c72ed00e-c706-4874-b674-4473c89c625f/595091a4-6d77-42a3-b322-a245b1984a71/lichess.svg",
+  "original_filename": "lichess.svg",
+  "size": 613,
+  "content_type": "image/svg+xml",
+  "created_at": "2026-10-18T13:23:20Z"
 }

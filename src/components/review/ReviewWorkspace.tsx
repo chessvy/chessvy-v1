@@ -8,9 +8,9 @@ import { badgeCorner, type Orientation } from "@/lib/chess/badge";
 import { CLASS_LABEL, winChance } from "@/lib/chess/classify";
 import { CLASS_ICON } from "@/lib/chess/icons";
 import { nextPlaybackPly, PLAYBACK_INTERVAL, moveSound, formatEvaluation } from "@/lib/chess/playback";
-import moveAudio from "@/assets/sounds/move.wav.asset.json";
-import captureAudio from "@/assets/sounds/capture.wav.asset.json";
-import checkAudio from "@/assets/sounds/check.wav.asset.json";
+import moveAudio from "@/assets/sounds/move.mp3.asset.json";
+import captureAudio from "@/assets/sounds/capture.mp3.asset.json";
+import checkAudio from "@/assets/sounds/check.mp3.asset.json";
 import { GameImporter } from "./GameImporter";
 import { PlayerAvatar, PlatformLogo, type Platform } from "./PlayerAvatar";
 
@@ -152,8 +152,9 @@ export function ReviewWorkspace() {
             onSquareClick: ({ square }) => { const sq = square as Square; if (selected && selected !== sq && playMove(selected, sq)) return; const p = game.get(sq); setSelected(p && p.color === game.turn() ? sq : null); }, animationDurationInMs: 180 }} />
           {analyzed && corner && <div key={`${ply}-${analyzed.classification}`} className="pointer-events-none absolute inset-0 grid grid-cols-8 grid-rows-8">
             <div className="relative" style={{ gridColumn: corner.col + 1, gridRow: corner.row + 1 }}>
-              {special && <span className={`absolute inset-0 ${analyzed.classification === "genius" ? "genius-flash" : "great-flash"}`} />}
-              <img src={CLASS_ICON[analyzed.classification]} alt={CLASS_LABEL[analyzed.classification]} title={CLASS_LABEL[analyzed.classification]} className={`badge-pop absolute z-10 w-[42%] ${special ? "special-badge" : ""}`} style={{ [corner.vertical]: 0, [corner.horizontal]: 0, translate: `${corner.horizontal === "right" ? "50%" : "-50%"} ${corner.vertical === "top" ? "-50%" : "50%"}` }} />
+              {special && <span className="special-ring" style={{ "--ring-color": `var(--cls-${analyzed.classification})` } as React.CSSProperties} />}
+              {special && <span className="special-ring delay" style={{ "--ring-color": `var(--cls-${analyzed.classification})` } as React.CSSProperties} />}
+              <img src={CLASS_ICON[analyzed.classification]} alt={CLASS_LABEL[analyzed.classification]} title={CLASS_LABEL[analyzed.classification]} className={`badge-pop absolute z-10 w-[42%] ${special ? "special-badge" : ""}`} style={{ [corner.vertical]: 0, [corner.horizontal]: 0, translate: `${corner.horizontal === "right" ? "50%" : "-50%"} ${corner.vertical === "top" ? "-50%" : "50%"}`, "--ring-color": `var(--cls-${analyzed.classification})` } as React.CSSProperties} />
             </div>
           </div>}
           {promo && <div className="absolute inset-0 z-20 flex items-center justify-center bg-overlay"><div className="flex gap-2 rounded-md border border-border bg-card p-3">{(["q", "r", "b", "n"] as const).map(p => <Button key={p} variant="secondary" onClick={() => { const pr = promo; setPromo(null); playMove(pr.from, pr.to, p); }}>{{ q: "♛", r: "♜", b: "♝", n: "♞" }[p]}<span className="sr-only">{{ q: "Queen", r: "Rook", b: "Bishop", n: "Knight" }[p]}</span></Button>)}</div></div>}

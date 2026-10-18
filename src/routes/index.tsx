@@ -21,7 +21,8 @@ function Index() {
     <div className="min-h-screen">
       <header className="border-b border-border bg-card/60">
         <div className="mx-auto flex h-14 max-w-7xl items-center px-4">
-          <img src={logo.url} alt="Chessvy" className="h-11 w-36 object-contain object-left" />
+          <img src={logo.url} alt="" className="h-8 w-auto" />
+          <span className="ml-2 font-display text-lg font-bold tracking-tight">Chessvy</span>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6">
