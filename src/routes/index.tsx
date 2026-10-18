@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ReviewWorkspace } from "@/components/review/ReviewWorkspace";
+import logo from "@/assets/chessvy-logo.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,10 +21,10 @@ function Index() {
     <div className="min-h-screen">
       <header className="border-b border-border bg-card/60">
         <div className="mx-auto flex h-14 max-w-7xl items-center px-4">
-          <span className="font-display text-xl font-bold tracking-tight">Chessvy</span>
+          <img src={logo.url} alt="Chessvy" className="h-11 w-36 object-contain object-left" />
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6">
         <ReviewWorkspace />
       </main>
     </div>
