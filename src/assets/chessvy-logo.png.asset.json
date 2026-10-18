@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "44b72890-a04e-4b39-aa8c-b24eeb4c7b4f",
-  "project_id": "266342f6-ada7-4d04-a060-1c990f471dce",
-  "url": "/__l5e/assets-v1/44b72890-a04e-4b39-aa8c-b24eeb4c7b4f/chessvy-logo.png",
-  "r2_key": "a/v1/266342f6-ada7-4d04-a060-1c990f471dce/44b72890-a04e-4b39-aa8c-b24eeb4c7b4f/chessvy-logo.png",
-  "original_filename": "chessvy-logo.png",
-  "size": 35136,
   "content_type": "image/png",
-  "created_at": "2026-10-18T13:34:07Z"
+  "created_at": "2026-10-18T13:34:07Z",
+  "original_filename": "chessvy-logo.png",
+  "project_id": "fc5e6244-bb9d-472c-9a86-a5be304a0706",
+  "r2_key": "a/v1/fc5e6244-bb9d-472c-9a86-a5be304a0706/44b72890-a04e-4b39-aa8c-b24eeb4c7b4f/chessvy-logo.png",
+  "size": 35136,
+  "url": "/__l5e/assets-v1/44b72890-a04e-4b39-aa8c-b24eeb4c7b4f/chessvy-logo.png",
+  "version": 1
 }
