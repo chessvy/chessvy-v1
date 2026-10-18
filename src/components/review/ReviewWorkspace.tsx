@@ -68,8 +68,6 @@ export function ReviewWorkspace() {
     }
     previousPly.current = ply;
   }, [ply, sound, moves]);
-  useEffect(() => {
-
   const reviewAnother = () => {
     importerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     importerRef.current?.querySelector<HTMLTextAreaElement>("textarea")?.focus({ preventScroll: true });
