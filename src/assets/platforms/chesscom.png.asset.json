@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "d4fa670b-3e6b-4e5f-bb9d-d11c2b8314e8",
-  "project_id": "c72ed00e-c706-4874-b674-4473c89c625f",
-  "url": "/__l5e/assets-v1/d4fa670b-3e6b-4e5f-bb9d-d11c2b8314e8/chesscom.png",
-  "r2_key": "a/v1/c72ed00e-c706-4874-b674-4473c89c625f/d4fa670b-3e6b-4e5f-bb9d-d11c2b8314e8/chesscom.png",
-  "original_filename": "chesscom.png",
-  "size": 621,
   "content_type": "image/png",
-  "created_at": "2026-10-18T13:23:28Z"
+  "created_at": "2026-10-18T13:23:28Z",
+  "original_filename": "chesscom.png",
+  "project_id": "266342f6-ada7-4d04-a060-1c990f471dce",
+  "r2_key": "a/v1/266342f6-ada7-4d04-a060-1c990f471dce/d4fa670b-3e6b-4e5f-bb9d-d11c2b8314e8/chesscom.png",
+  "size": 621,
+  "url": "/__l5e/assets-v1/d4fa670b-3e6b-4e5f-bb9d-d11c2b8314e8/chesscom.png",
+  "version": 1
 }
