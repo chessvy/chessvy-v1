@@ -73,7 +73,7 @@ export function ReviewWorkspace() {
       cancelRef.current.cancelled = true;
       setPlaying(false); setSelected(null); setPromo(null);
       setMoves(r.moves); setHeaders(r.headers);
-      setPlatform(source ?? (r.headers.Site?.includes("lichess.org") ? "lichess" : r.headers.Site?.includes("chess.com") ? "chesscom" : undefined));
+      setPlatform(source ?? (r.headers["Site"]?.includes("lichess.org") ? "lichess" : r.headers["Site"]?.includes("chess.com") ? "chesscom" : undefined));
       setReview(null); setPartial([]); setProgress(null); setPly(0); previousPly.current = 0;
     } catch (e) { setError((e as Error).message); }
   };
@@ -138,7 +138,7 @@ export function ReviewWorkspace() {
 
   return <div className="workspace-grid">
     <section className="min-w-0">
-      <PlayerTag name={orientation === "white" ? headers.Black : headers.White} fallback={orientation === "white" ? "Black" : "White"} rating={orientation === "white" ? headers.BlackElo : headers.WhiteElo} platform={platform} />
+      <PlayerTag name={orientation === "white" ? headers["Black"] : headers["White"]} fallback={orientation === "white" ? "Black" : "White"} rating={orientation === "white" ? headers["BlackElo"] : headers["WhiteElo"]} platform={platform} />
       <div className="board-layout mt-3">
         <div className="eval-bar relative overflow-hidden rounded-sm bg-eval-black" role="meter" aria-label="Evaluation bar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={whitePct} aria-valuetext={formatEvaluation(evalCp)}>
           <div className="absolute inset-x-0 bg-eval-white transition-all duration-500" style={orientation === "white" ? { bottom: 0, height: `${whitePct}%` } : { top: 0, height: `${whitePct}%` }} />
@@ -160,7 +160,7 @@ export function ReviewWorkspace() {
         </div>
         <div className="file-labels col-start-3 grid grid-cols-8 text-center text-foreground/50">{[...files].map(f => <span key={f}>{f}</span>)}</div>
       </div>
-      <PlayerTag name={orientation === "white" ? headers.White : headers.Black} fallback={orientation === "white" ? "White" : "Black"} rating={orientation === "white" ? headers.WhiteElo : headers.BlackElo} platform={platform} />
+      <PlayerTag name={orientation === "white" ? headers["White"] : headers["Black"]} fallback={orientation === "white" ? "White" : "Black"} rating={orientation === "white" ? headers["WhiteElo"] : headers["BlackElo"]} platform={platform} />
       <div className="mt-4 grid grid-cols-[auto_1fr_auto] items-center gap-1 border-y border-border py-2">
         <IconControl label="Flip board" onClick={() => setOrientation(o => o === "white" ? "black" : "white")}><RotateCw /></IconControl>
         <div className="flex items-center justify-center gap-0.5 sm:gap-2">
@@ -188,7 +188,7 @@ export function ReviewWorkspace() {
         {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
       </section>
       <GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} />
-      {!!moves.length && <section className="border-t border-border pt-4"><h2 className="mb-3 font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers.Result ?? "*"}</span></h2><ol className="grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} />)}</ol></section>}
+      {!!moves.length && <section className="border-t border-border pt-4"><h2 className="mb-3 font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers["Result"] ?? "*"}</span></h2><ol className="grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} />)}</ol></section>}
     </aside>
   </div>;
 }
