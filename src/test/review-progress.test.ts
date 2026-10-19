@@ -23,4 +23,14 @@ describe("progressive review", () => {
     expect(progress).not.toHaveBeenCalled();
     expect(mocks.terminate).toHaveBeenCalledOnce();
   });
+  it("scores a played move from its original root rather than a drifting after-position", async () => {
+    const game = new Chess(); const move = game.move("h4");
+    mocks.analyse.mockResolvedValueOnce([{ score: 40, move: "e2e4" }, { score: 30, move: "d2d4" }]);
+    mocks.analyse.mockResolvedValueOnce([{ score: 900, move: "e7e5" }]);
+    mocks.analyse.mockResolvedValueOnce([{ score: 20, move: "h2h4" }]);
+    const review = await analyzeGame([move], vi.fn(), { cancelled: false }, 20);
+    expect(mocks.analyse).toHaveBeenLastCalledWith(move.before, 20, 1, "h2h4");
+    expect(review.moves[0]?.classification).toBe("excellent");
+    expect(review.evals).toEqual([40, -900]);
+  });
 });

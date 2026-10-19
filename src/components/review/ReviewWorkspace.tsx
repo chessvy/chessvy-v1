@@ -137,6 +137,7 @@ export function ReviewWorkspace() {
     if (moves[ply]?.san !== m.san) {
       cancelRef.current.cancelled = true;
       setProgress(null); setPartial([]); setMoves([...moves.slice(0, ply), m]); setReview(null);
+      setHeaders(h => ({ ...h, Result: c.isCheckmate() ? (m.color === "w" ? "1-0" : "0-1") : c.isDraw() ? "1/2-1/2" : "*" })); setCopied(false);
     }
     setPly(ply + 1); setSelected(null); return true;
   }, [fen, moves, ply]);

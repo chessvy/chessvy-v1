@@ -130,7 +130,6 @@ export async function analyzeGame(
       const first = deepBefore[0], next = deepAfter[0];
       if (!first || !next) continue;
       stm[i] = { best: first.score, second: deepBefore[1]?.score ?? null, move: first.move };
-      stm[i + 1] = { best: next.score, second: deepAfter[1]?.score ?? null, move: next.move };
       // Deeper searches must also update the played-root score before classification.
       if (first.move === uci) playedScores.set(i, first.score);
       else {
@@ -139,7 +138,7 @@ export async function analyzeGame(
       }
       evals[i] = move.color === "w" ? first.score : -first.score;
       evals[i + 1] = move.color === "w" ? -next.score : next.score;
-      if (first.move === uci && (first.depth ?? 0) >= VERIFICATION_DEPTH && (next.depth ?? 0) >= VERIFICATION_DEPTH) verified.add(i);
+      if (first.move === uci && (first.depth ?? 0) >= VERIFICATION_DEPTH && (next.depth ?? 0) >= VERIFICATION_DEPTH && -next.score >= 0 && winLoss(first.score, -next.score) <= 0.5) verified.add(i);
       if (signal.cancelled) throw new Error("cancelled");
       onProgress(fens.length, fens.length, [...evals]);
     }
