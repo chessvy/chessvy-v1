@@ -11,7 +11,7 @@ import {
   type Classification,
 } from "./classify";
 
-export const ENGINE_DEPTH = 18;
+export const ENGINE_DEPTH = 20;
 export const VERIFICATION_DEPTH = 22;
 const VALUE: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
@@ -93,7 +93,7 @@ export async function analyzeGame(
       if (c.isCheckmate()) stm.push({ best: -MATE_SCORE, second: null, move: null });
       else if (c.isGameOver()) stm.push({ best: 0, second: null, move: null });
       else {
-        const lines = await engine.analyse(fen, depth);
+        const lines = await engine.analyse(fen, depth, Math.min(2, c.moves().length));
         const primary = lines[0];
         if (!primary || !Number.isFinite(primary.score)) throw new Error("The engine returned no reliable evaluation. Run review again.");
         stm.push({ best: primary.score, second: lines[1]?.score ?? null, move: primary.move });
@@ -117,7 +117,6 @@ export async function analyzeGame(
         if (!played || !Number.isFinite(played.score)) throw new Error("The played move couldn't be verified. Run review again.");
         playedScores.set(i, played.score);
       }
-      onProgress(fens.length, fens.length, [...evals]);
     }
     // Rare sacrifice candidates receive a second, deeper search on both sides.
     for (let i = 0; i < moves.length; i++) {
@@ -126,8 +125,8 @@ export async function analyzeGame(
       const uci = move.from + move.to + (move.promotion ?? "");
       if (before.move !== uci || before.best >= 600 || -after.best < 0) continue;
       if (signal.cancelled) throw new Error("cancelled");
-      const deepBefore = await engine.analyse(move.before, Math.max(VERIFICATION_DEPTH, depth + 4));
-      const deepAfter = await engine.analyse(move.after, Math.max(VERIFICATION_DEPTH, depth + 4));
+      const deepBefore = await engine.analyse(move.before, Math.max(VERIFICATION_DEPTH, depth + 4), Math.min(2, new Chess(move.before).moves().length));
+      const deepAfter = await engine.analyse(move.after, Math.max(VERIFICATION_DEPTH, depth + 4), Math.min(2, new Chess(move.after).moves().length));
       const first = deepBefore[0], next = deepAfter[0];
       if (!first || !next) continue;
       stm[i] = { best: first.score, second: deepBefore[1]?.score ?? null, move: first.move };

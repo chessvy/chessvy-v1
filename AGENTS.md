@@ -15,3 +15,5 @@
 - Public Chess.com avatars are fetched client-side and cached; platforms without public avatar fields use neutral player icons rather than invented profile photos.
 - Board coordinates occupy separate grid tracks outside the squares so pieces remain unobstructed on all device sizes.
 - Review effects use a shared icon-sized badge wrapper and a preloaded Web Audio manager; this keeps celebrations off pieces and avoids delayed sound downloads during playback.
+- PGN exports rebuild the loaded mainline and headers through chess.js; clipboard and downloads never use potentially stale import text.
+- Move-loss comparisons use same-root restricted Stockfish searches, while the graph uses independent white-perspective position scores; complete MultiPV iterations prevent mismatched-depth comparisons.
