@@ -21,8 +21,8 @@ function Index() {
     <div className="min-h-screen">
       <header className="border-b border-border bg-card/60">
         <div className="mx-auto flex h-14 max-w-7xl items-center px-4">
-          <img src={logo.url} alt="" className="h-8 w-auto" />
-          <span className="ml-2 font-display text-lg font-bold tracking-tight">Chessvy</span>
+          <span className="relative flex h-6 w-5 shrink-0 items-center justify-center overflow-hidden"><img src={logo.url} alt="" className="h-12 w-12 max-w-none shrink-0 object-contain" /></span>
+          <span className="ml-2 font-display text-xl font-bold">Chessvy</span>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6">
