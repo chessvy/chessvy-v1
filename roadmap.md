@@ -1,4 +1,7 @@
 # Chessvy review improvements
+- [ ] Finish Copy PGN, add PGN download and key-move navigation
+- [ ] Correct logo proportions beside the Chessvy name
+- [ ] Compare played moves at matching engine depth and validate engine results
 - [x] Check sound effect (no voice), king win/lose icons and confetti at game end
 - [ ] Conservative, deeper-verified Genius classifications
 - [ ] Review / Insights / Report sections with game-specific summaries
