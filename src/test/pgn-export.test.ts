@@ -9,14 +9,14 @@ describe("current game PGN export", () => {
     const exported = exportGamePgn(game.history({ verbose: true }), { White: "Alice", Black: "Bob", Result: "*" });
     const restored = new Chess(); restored.loadPgn(exported);
     expect(restored.history()).toEqual(["e4", "e5", "Nf3"]);
-    expect(restored.getHeaders().White).toBe("Alice");
-    expect(restored.getHeaders().Black).toBe("Bob");
+    expect(restored.getHeaders()["White"]).toBe("Alice");
+    expect(restored.getHeaders()["Black"]).toBe("Bob");
   });
   it("exports edited moves instead of the old game's result", () => {
     const game = new Chess(); game.move("d4");
     const restored = new Chess(); restored.loadPgn(exportGamePgn(game.history({ verbose: true }), { Result: "*" }));
     expect(restored.history()).toEqual(["d4"]);
-    expect(restored.getHeaders().Result).toBe("*");
+    expect(restored.getHeaders()["Result"]).toBe("*");
   });
   it("preserves custom starting positions", () => {
     const fen = "4k3/8/8/8/8/8/P7/4K3 w - - 0 1";
