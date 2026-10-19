@@ -1,5 +1,5 @@
 // App-hosted, pinned Stockfish 18 lite, single-threaded WASM.
-import { MATE_SCORE } from "./classify";
+import { commonDepthLines, parseEngineLine } from "./engine-lines";
 import script from "@/assets/engine/stockfish.js.asset.json";
 import wasm from "@/assets/engine/stockfish.wasm.asset.json";
 
@@ -73,50 +73,45 @@ export class Engine {
   }
 
   /** Serialized: one position at a time so info lines never mix between calls. */
-  analyse(fen: string, depth: number, multipv = 2): Promise<EngineLine[]> {
-    const run = this.queue.then(() => this.analyseNow(fen, depth, multipv));
+  analyse(fen: string, depth: number, multipv = 2, searchMove?: string): Promise<EngineLine[]> {
+    const run = this.queue.then(() => this.analyseNow(fen, depth, multipv, searchMove));
     this.queue = run.catch(() => {});
     return run;
   }
 
-  private async analyseNow(fen: string, depth: number, multipv: number): Promise<EngineLine[]> {
+  private async analyseNow(fen: string, depth: number, multipv: number, searchMove?: string): Promise<EngineLine[]> {
     await this.ready;
     if (this.disposed) throw new Error("cancelled");
     return new Promise((resolve, reject) => {
-      const lines = new Map<number, EngineLine>();
+      const iterations = new Map<number, Map<number, EngineLine>>();
+      const count = searchMove ? 1 : multipv;
       const timer = setTimeout(() => {
         this.fail?.(new Error("Analysis timed out. Please run review again."));
         this.cleanup(); this.disposed = true;
       }, 120000);
       const finish = (error?: Error) => {
         clearTimeout(timer); this.handler = null; this.fail = null;
-        const result = [...lines.entries()].sort((a, b) => a[0] - b[0]).map(e => e[1]);
+        const result = commonDepthLines(iterations, count);
         if (error) reject(error);
         else if (!result[0]) reject(new Error("The engine returned no evaluation. Please retry."));
         else resolve(result);
       };
       this.fail = finish;
       this.handler = (l) => {
-        if (l.startsWith("info") && l.includes(" pv ")) {
-          if (/\b(upperbound|lowerbound)\b/.test(l)) return;
-          const mpv = Number(/multipv (\d+)/.exec(l)?.[1] ?? 1);
-          const cp = /score cp (-?\d+)/.exec(l);
-          const mate = /score mate (-?\d+)/.exec(l);
-          const pv = / pv (\S+)/.exec(l)?.[1];
-          if (!pv || (!cp && !mate)) return;
-          const m = mate ? Number(mate[1]) : null;
-          const score =
-            m !== null ? (m > 0 ? MATE_SCORE - m * 10 : -MATE_SCORE - m * 10) : Number(cp?.[1] ?? 0);
-          const actualDepth = Number(/\bdepth (\d+)/.exec(l)?.[1] ?? 0);
-          if (!Number.isFinite(score)) return;
-          if (actualDepth >= (lines.get(mpv)?.depth ?? 0)) lines.set(mpv, { move: pv, score, mate: m, depth: actualDepth });
+        if (l.startsWith("info")) {
+          const parsed = parseEngineLine(l);
+          if (!parsed) return;
+          const actualDepth = parsed.line.depth ?? 0;
+          const lines = iterations.get(actualDepth) ?? new Map<number, EngineLine>();
+          lines.set(parsed.index, parsed.line);
+          iterations.set(actualDepth, lines);
         } else if (l.startsWith("bestmove")) {
           finish();
         }
       };
-      this.send(`setoption name MultiPV value ${multipv}`);
+      this.send(`setoption name MultiPV value ${count}`);
       this.send(`position fen ${fen}`);
-      this.send(`go depth ${depth}`);
+      this.send(`go depth ${depth}${searchMove ? ` searchmoves ${searchMove}` : ""}`);
     });
   }
 

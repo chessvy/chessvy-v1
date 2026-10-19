@@ -11,7 +11,7 @@ import {
   type Classification,
 } from "./classify";
 
-export const ENGINE_DEPTH = 18;
+export const ENGINE_DEPTH = 20;
 export const VERIFICATION_DEPTH = 22;
 const VALUE: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
@@ -83,6 +83,7 @@ export async function analyzeGame(
   const engine = new Engine();
   const stm: { best: number; second: number | null; move: string | null }[] = [];
   const verified = new Set<number>();
+  const playedScores = new Map<number, number>();
   try {
     for (let i = 0; i < fens.length; i++) {
       if (signal.cancelled) throw new Error("cancelled");
@@ -92,7 +93,7 @@ export async function analyzeGame(
       if (c.isCheckmate()) stm.push({ best: -MATE_SCORE, second: null, move: null });
       else if (c.isGameOver()) stm.push({ best: 0, second: null, move: null });
       else {
-        const lines = await engine.analyse(fen, depth);
+        const lines = await engine.analyse(fen, depth, Math.min(2, c.moves().length));
         const primary = lines[0];
         if (!primary || !Number.isFinite(primary.score)) throw new Error("The engine returned no reliable evaluation. Run review again.");
         stm.push({ best: primary.score, second: lines[1]?.score ?? null, move: primary.move });
@@ -102,6 +103,21 @@ export async function analyzeGame(
       evals.push(c.turn() === "w" ? score : -score);
       onProgress(i + 1, fens.length, [...evals]);
     }
+    // Compare alternatives from the same root, at the same depth and perspective.
+    // Independent after-position evaluations remain the source for the graph.
+    for (let i = 0; i < moves.length; i++) {
+      const move = moves[i], before = stm[i];
+      if (!move || !before) continue;
+      if (signal.cancelled) throw new Error("cancelled");
+      const uci = move.from + move.to + (move.promotion ?? "");
+      if (before.move === uci) playedScores.set(i, before.best);
+      else if (!isBookMove(move)) {
+        const lines = await engine.analyse(move.before, depth, 1, uci);
+        const played = lines[0];
+        if (!played || !Number.isFinite(played.score)) throw new Error("The played move couldn't be verified. Run review again.");
+        playedScores.set(i, played.score);
+      }
+    }
     // Rare sacrifice candidates receive a second, deeper search on both sides.
     for (let i = 0; i < moves.length; i++) {
       const move = moves[i], before = stm[i], after = stm[i + 1];
@@ -109,15 +125,20 @@ export async function analyzeGame(
       const uci = move.from + move.to + (move.promotion ?? "");
       if (before.move !== uci || before.best >= 600 || -after.best < 0) continue;
       if (signal.cancelled) throw new Error("cancelled");
-      const deepBefore = await engine.analyse(move.before, Math.max(VERIFICATION_DEPTH, depth + 4));
-      const deepAfter = await engine.analyse(move.after, Math.max(VERIFICATION_DEPTH, depth + 4));
+      const deepBefore = await engine.analyse(move.before, Math.max(VERIFICATION_DEPTH, depth + 4), Math.min(2, new Chess(move.before).moves().length));
+      const deepAfter = await engine.analyse(move.after, Math.max(VERIFICATION_DEPTH, depth + 4), Math.min(2, new Chess(move.after).moves().length));
       const first = deepBefore[0], next = deepAfter[0];
       if (!first || !next) continue;
       stm[i] = { best: first.score, second: deepBefore[1]?.score ?? null, move: first.move };
-      stm[i + 1] = { best: next.score, second: deepAfter[1]?.score ?? null, move: next.move };
+      // Deeper searches must also update the played-root score before classification.
+      if (first.move === uci) playedScores.set(i, first.score);
+      else {
+        const played = (await engine.analyse(move.before, Math.max(VERIFICATION_DEPTH, depth + 4), 1, uci))[0];
+        if (played) playedScores.set(i, played.score);
+      }
       evals[i] = move.color === "w" ? first.score : -first.score;
       evals[i + 1] = move.color === "w" ? -next.score : next.score;
-      if (first.move === uci && (first.depth ?? 0) >= VERIFICATION_DEPTH && (next.depth ?? 0) >= VERIFICATION_DEPTH) verified.add(i);
+      if (first.move === uci && (first.depth ?? 0) >= VERIFICATION_DEPTH && (next.depth ?? 0) >= VERIFICATION_DEPTH && -next.score >= 0 && winLoss(first.score, -next.score) <= 0.5) verified.add(i);
       if (signal.cancelled) throw new Error("cancelled");
       onProgress(fens.length, fens.length, [...evals]);
     }
@@ -133,7 +154,7 @@ export async function analyzeGame(
     const after = stm[i + 1];
     if (!before || !after) return;
     const bestCp = before.best;
-    const playedCp = -after.best;
+    const playedCp = playedScores.get(i) ?? -after.best;
     const uci = m.from + m.to + (m.promotion ?? "");
     const playedIsBest = before.move === uci;
     const loss = playedIsBest ? 0 : winLoss(bestCp, playedCp);

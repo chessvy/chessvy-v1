@@ -1,11 +1,14 @@
 # Chessvy review improvements
+- [x] Finish Copy PGN, add PGN download and key-move navigation
+- [x] Correct logo proportions beside the Chessvy name
+- [x] Compare played moves at matching engine depth and validate engine results
 - [x] Check sound effect (no voice), king win/lose icons and confetti at game end
-- [ ] Conservative, deeper-verified Genius classifications
-- [ ] Review / Insights / Report sections with game-specific summaries
+- [x] Conservative, deeper-verified Genius classifications
+- [x] Review / Insights / Report sections with game-specific summaries
 - [x] Remove completion popup
 - [x] Engine best-move arrows and settings (engine depth, arrows, eval bar)
-- [ ] Copy PGN and richer piece motion
-- [ ] Test classification rules and verify full desktop/mobile flow
+- [x] Copy PGN
+- [x] Test classification rules and verify full desktop/mobile flow
 - [x] Stabilize Stockfish loading and deepen consistent analysis
 - [x] Neutral evaluation graph with classification dots
 - [x] Estimated performance and verified opening-book moves
