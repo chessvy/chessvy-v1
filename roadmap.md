@@ -1,4 +1,6 @@
 # Chessvy review improvements
+- [x] Reuse completed same-depth searches without changing default or adjustable depth
+- [x] Test search reuse and verify a real review completes
 - [x] Finish Copy PGN, add PGN download and key-move navigation
 - [x] Correct logo proportions beside the Chessvy name
 - [x] Compare played moves at matching engine depth and validate engine results
