@@ -217,7 +217,9 @@
 .brilliant-icon::before { top: -12%; right: -8%; }
 .brilliant-icon::after { bottom: -5%; left: -10%; font-size: 9px; animation-delay: 140ms; }
 .game-importer textarea { min-height: 120px; transition: border-color 150ms; }
-.review-sidebar ol { scrollbar-width: thin; scrollbar-color: var(--accent) transparent; }
+.review-sidebar ol { scrollbar-width: thin; scrollbar-color: var(--accent) transparent; scrollbar-gutter: stable; overscroll-behavior-y: contain; }
+.workspace-grid button:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+.game-importer textarea, .game-importer input { scroll-margin-block: 24px; }
 .move-cell { border-left: 2px solid transparent; font-variant-numeric: tabular-nums; }
 .move-cell[aria-current="step"] { border-left-color: var(--primary); background: var(--secondary); font-weight: 700; }
 .review-sidebar ol > span { padding-left: 4px; }
