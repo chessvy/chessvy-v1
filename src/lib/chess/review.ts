@@ -81,7 +81,7 @@ export async function analyzeGame(
   const fens: string[] = [first.before, ...moves.map((m) => m.after)];
   const evals: number[] = [];
   const engine = new Engine();
-  const stm: { best: number; second: number | null; move: string | null; runnerUp?: { move: string; score: number; depth?: number } }[] = [];
+  const stm: { best: number; second: number | null; move: string | null; runnerUp?: { move: string; score: number; depth?: number } | undefined }[] = [];
   const verified = new Set<number>();
   const playedScores = new Map<number, number>();
   try {
