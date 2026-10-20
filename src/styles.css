@@ -193,3 +193,32 @@
 @keyframes king-outcome { 0% { transform: scale(0) rotate(-30deg); } 70% { transform: scale(1.2) rotate(8deg); } 100% { transform: scale(1) rotate(0); } }
 .king-outcome { animation: king-outcome 600ms cubic-bezier(.2,.8,.3,1.3) both; filter: drop-shadow(0 2px 3px oklch(0 0 0 / 0.5)); }
 @media (prefers-reduced-motion: reduce) { .confetti-piece { display: none; } .king-outcome { animation: none; } }
+
+/* Review presentation: quiet section dividers and clear selected states. */
+:root {
+  --surface-toolbar: oklch(0.225 0.008 260);
+  --brilliant-accent: oklch(0.83 0.12 195);
+  --brilliant-surface: oklch(0.28 0.035 195);
+  --board-shadow: 0 8px 24px oklch(0 0 0 / 18%);
+}
+.board-frame { box-shadow: var(--board-shadow); }
+.player-tag { min-height: 42px; }
+.playback-toolbar { background: var(--surface-toolbar); border-radius: 6px; padding-inline: 4px; }
+.playback-toolbar button[aria-label="Play moves"],
+.playback-toolbar button[aria-label="Pause playback"] { background: var(--primary); color: var(--primary-foreground); }
+.review-status { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.review-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+.analysis-tabs, .source-tabs { gap: 4px; padding-bottom: 0; }
+.analysis-tabs [role="tab"], .source-tabs [role="tab"] { border-radius: 0; border-bottom: 2px solid transparent; background: transparent; opacity: .65; }
+.analysis-tabs [aria-selected="true"], .source-tabs [aria-selected="true"] { border-bottom-color: var(--primary); opacity: 1; background: var(--secondary); }
+.move-verdict { padding-top: 12px; padding-bottom: 12px; }
+.brilliant-verdict { border-left-color: var(--brilliant-accent); background: var(--brilliant-surface); animation: brilliant-reveal 450ms ease-out both; }
+.brilliant-icon::before, .brilliant-icon::after { content: "✦"; position: absolute; z-index: 2; color: var(--brilliant-accent); font-size: 13px; line-height: 1; pointer-events: none; animation: brilliant-spark 900ms ease-out both; }
+.brilliant-icon::before { top: -12%; right: -8%; }
+.brilliant-icon::after { bottom: -5%; left: -10%; font-size: 9px; animation-delay: 140ms; }
+.game-importer textarea { min-height: 120px; transition: border-color 150ms; }
+.review-sidebar ol { scrollbar-width: thin; scrollbar-color: var(--accent) transparent; }
+@keyframes brilliant-spark { 0% { opacity: 0; transform: scale(.3) rotate(-35deg); } 35% { opacity: 1; transform: scale(1.15) rotate(0); } 100% { opacity: 0; transform: translateY(-5px) scale(.7); } }
+@keyframes brilliant-reveal { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (min-width: 1024px) { .review-sidebar { border-left: 1px solid var(--border); padding-left: 24px; } }
+@media (prefers-reduced-motion: reduce) { .brilliant-icon::before, .brilliant-icon::after, .brilliant-verdict { animation: none; } .brilliant-icon::before, .brilliant-icon::after { display: none; } }

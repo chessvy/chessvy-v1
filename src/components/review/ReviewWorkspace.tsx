@@ -213,7 +213,7 @@ export function ReviewWorkspace() {
         <div className="file-labels col-start-3 grid grid-cols-8 text-center text-foreground/50">{[...files].map(f => <span key={f}>{f}</span>)}</div>
       </div>
       <PlayerTag name={orientation === "white" ? headers["White"] : headers["Black"]} fallback={orientation === "white" ? "White" : "Black"} rating={orientation === "white" ? headers["WhiteElo"] : headers["BlackElo"]} platform={platform} />
-      <div className="mt-4 grid grid-cols-[auto_1fr_auto] items-center gap-1 border-y border-border py-2">
+      <div className="playback-toolbar mt-4 grid grid-cols-[auto_1fr_auto] items-center gap-1 border-y border-border py-2">
         <IconControl label="Flip board" onClick={() => setOrientation(o => o === "white" ? "black" : "white")}><RotateCw /></IconControl>
         <div className="flex items-center justify-center gap-0.5 sm:gap-2">
           <IconControl label="First move" disabled={!ply} onClick={() => jump(0)}><ChevronFirst /></IconControl>
@@ -235,10 +235,10 @@ export function ReviewWorkspace() {
       {review && ply === moves.length && gameOutcome(headers["Result"], orientation) && <div key={`ending-${orientation}`} role="status" className="badge-pop mt-3 flex items-center justify-center gap-3"><img className="h-8 w-8" src={RESULT_ICON[gameOutcome(headers["Result"], orientation) ?? "draw"]} alt="" /><span className="text-sm font-medium">{headers["Result"] === "1/2-1/2" ? "Draw" : `${headers[headers["Result"] === "1-0" ? "White" : "Black"] ?? (headers["Result"] === "1-0" ? "White" : "Black")} wins`}</span></div>}
       <p className="mt-2 text-center text-xs text-foreground/40">{ply} / {moves.length} {last ? `· ${last.san}` : ""}</p>
     </section>
-    <aside className="min-w-0 space-y-5">
+    <aside className="review-sidebar min-w-0 space-y-5">
       <section>
-        <div className="flex items-center justify-between"><h2 className="font-display text-xl font-semibold">Game review</h2>{review && <span className="text-xs text-primary">Complete</span>}</div>
-        <div role="tablist" aria-label="Analysis sections" className="mt-3 grid grid-cols-3 border-b border-border pb-2">
+        <div className="flex items-center justify-between"><h2 className="font-display text-xl font-semibold">Game review</h2><span className="review-status text-xs text-foreground">{progress ? "Analyzing" : review ? "Complete" : `Depth ${depth}`}</span></div>
+        <div role="tablist" aria-label="Analysis sections" className="analysis-tabs mt-3 grid grid-cols-3 border-b border-border pb-2">
           {(["review", "insights", "report"] as const).map(tab => <Button key={tab} role="tab" aria-selected={section === tab} aria-controls="analysis-panel" variant={section === tab ? "secondary" : "ghost"} onClick={() => setSection(tab)} className="capitalize">{tab}</Button>)}
         </div>
         {(progress || evals.length > 0) && <EvalGraph review={review} evals={evals} total={moves.length + 1} ply={ply} onPick={jump} />}
@@ -248,7 +248,7 @@ export function ReviewWorkspace() {
         </div>
         {progress && <div className="mt-3" role="status"><div className="h-1 overflow-hidden rounded-sm bg-secondary"><div className="h-full bg-primary transition-all" style={{ width: `${progress.done / progress.total * 100}%` }} /></div><p className="mt-2 text-xs text-foreground/50">Depth {depth} · {progress.done === progress.total ? "Verifying played moves…" : `${progress.done}/${progress.total} positions`}</p></div>}
         <div id="analysis-panel" role="tabpanel">
-        {section === "review" && analyzed && <div key={ply} className="mt-4 flex items-center gap-3 border-l-2 border-primary pl-3"><div className="h-9 w-9 shrink-0"><ReviewBadge classification={analyzed.classification} special={special} /></div><div className="min-w-0 text-sm"><p className="font-semibold">{analyzed.san} · {CLASS_LABEL[analyzed.classification]}</p>{analyzed.bestMoveSan && analyzed.bestMoveSan !== analyzed.san && <p className="mt-1 text-xs text-foreground/60">Best move: {analyzed.bestMoveSan}</p>}</div></div>}
+        {section === "review" && analyzed && <div key={ply} className={`move-verdict mt-4 flex items-center gap-3 border-l-2 border-primary pl-3 ${analyzed.classification === "genius" ? "brilliant-verdict" : ""}`}><div className="h-9 w-9 shrink-0"><ReviewBadge classification={analyzed.classification} special={special} /></div><div className="min-w-0 text-sm"><p className="font-semibold">{analyzed.san} · {CLASS_LABEL[analyzed.classification]}</p>{analyzed.bestMoveSan && analyzed.bestMoveSan !== analyzed.san && <p className="mt-1 text-xs text-foreground/60">Best move: {analyzed.bestMoveSan}</p>}</div></div>}
         {section === "review" && nextCritical && <Button variant="ghost" className="mt-3 w-full justify-start" onClick={() => jump(nextCritical.ply)}><Flag />Next key moment</Button>}
         {section !== "review" && !review && <p className="mt-4 text-sm text-foreground/50">{progress ? "Analysis in progress…" : "No game analysis yet."}</p>}
         {section === "insights" && review && <><div className="mt-4 grid grid-cols-2 divide-x divide-border border-y border-border py-3"><Stat label="White accuracy" value={review.accuracy.white} performance={review.performance.white} /><Stat label="Black accuracy" value={review.accuracy.black} performance={review.performance.black} /></div><div className="mt-4 space-y-2">{Object.entries(CLASS_LABEL).map(([key, label]) => { const count = review.moves.filter(m => m.classification === key).length; return count ? <div key={key} className="flex items-center gap-2 text-sm"><img src={CLASS_ICON[key as keyof typeof CLASS_ICON]} alt="" className="h-5 w-5" /><span className="flex-1">{label}</span><span className="tabular-nums">{count}</span></div> : null; })}</div></>}
@@ -294,7 +294,7 @@ function Confetti() {
   return <div aria-hidden className="pointer-events-none absolute inset-0 z-30 overflow-hidden">{pieces.map((p, i) => <span key={i} className="confetti-piece" style={{ left: `${p.left}%`, background: p.color, animationDelay: `${p.delay}s`, animationDuration: `${p.dur}s`, "--drift": `${p.drift}px`, "--rot": `${p.rot}deg` } as React.CSSProperties} />)}</div>;
 }
 function ReviewBadge({ classification, special }: { classification: keyof typeof CLASS_ICON; special: boolean }) {
-  return <span className="relative block aspect-square w-full" style={{ "--ring-color": `var(--cls-${classification})` } as React.CSSProperties}>
+  return <span className={`relative block aspect-square w-full ${classification === "genius" ? "brilliant-icon" : ""}`} style={{ "--ring-color": `var(--cls-${classification})` } as React.CSSProperties}>
     {special && <span className="special-ring" />}
     <img src={CLASS_ICON[classification]} alt={CLASS_LABEL[classification]} title={CLASS_LABEL[classification]} className={`relative block h-full w-full badge-pop ${special ? "special-badge" : ""}`} />
   </span>;
