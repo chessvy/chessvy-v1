@@ -24,9 +24,9 @@ export function GameImporter({ pgn, setPgn, onLoad, sample }: {
     } catch (e) { if (id === request.current) setErr((e as Error).message); }
     finally { if (id === request.current) setLoading(false); }
   };
-  return <section className="border-t border-border pt-5">
+  return <section className="game-importer border-t border-border pt-5">
     <h2 className="font-display text-lg font-semibold">Import a game</h2>
-    <div className="mt-3 grid grid-cols-3 gap-1 border-b border-border pb-2" role="tablist" aria-label="Game source">
+    <div className="source-tabs mt-3 grid grid-cols-3 gap-1 border-b border-border pb-2" role="tablist" aria-label="Game source">
       {([['pgn', 'PGN'], ['lichess', 'Lichess'], ['chesscom', 'Chess.com']] as const).map(([key, label]) =>
         <Button key={key} role="tab" aria-selected={tab === key} variant={tab === key ? "secondary" : "ghost"} className="min-w-0 gap-1.5 px-1 text-xs sm:text-sm"
           onClick={() => { ++request.current; setTab(key); setGames(null); setErr(null); setLoading(false); }}>
