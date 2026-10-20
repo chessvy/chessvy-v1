@@ -218,6 +218,11 @@
 .brilliant-icon::after { bottom: -5%; left: -10%; font-size: 9px; animation-delay: 140ms; }
 .game-importer textarea { min-height: 120px; transition: border-color 150ms; }
 .review-sidebar ol { scrollbar-width: thin; scrollbar-color: var(--accent) transparent; }
+.move-cell { border-left: 2px solid transparent; font-variant-numeric: tabular-nums; }
+.move-cell[aria-current="step"] { border-left-color: var(--primary); background: var(--secondary); font-weight: 700; }
+.review-sidebar ol > span { padding-left: 4px; }
+.review-sidebar svg[role="slider"]:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
+.source-tabs [role="tab"]:hover, .analysis-tabs [role="tab"]:hover { opacity: 1; }
 @keyframes brilliant-spark { 0% { opacity: 0; transform: scale(.3) rotate(-35deg); } 35% { opacity: 1; transform: scale(1.15) rotate(0); } 100% { opacity: 0; transform: translateY(-5px) scale(.7); } }
 @keyframes brilliant-reveal { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @media (min-width: 1024px) { .review-sidebar { border-left: 1px solid var(--border); padding-left: 24px; } }
