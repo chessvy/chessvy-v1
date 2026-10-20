@@ -1,5 +1,6 @@
 // App-hosted, pinned Stockfish 18 lite, single-threaded WASM.
 import { commonDepthLines, parseEngineLine } from "./engine-lines";
+import { AnalysisCache } from "./analysis-cache";
 import script from "@/assets/engine/stockfish.js.asset.json";
 import wasm from "@/assets/engine/stockfish.wasm.asset.json";
 
@@ -18,6 +19,7 @@ export class Engine {
   private handler: ((l: string) => void) | null = null;
   private fail: ((error: Error) => void) | null = null;
   private queue: Promise<unknown> = Promise.resolve();
+  private cache = new AnalysisCache<EngineLine[]>();
 
   constructor() {
     this.ready = this.initialize();
@@ -74,9 +76,13 @@ export class Engine {
 
   /** Serialized: one position at a time so info lines never mix between calls. */
   analyse(fen: string, depth: number, multipv = 2, searchMove?: string): Promise<EngineLine[]> {
-    const run = this.queue.then(() => this.analyseNow(fen, depth, multipv, searchMove));
-    this.queue = run.catch(() => {});
-    return run;
+    if (this.disposed) return Promise.reject(new Error("cancelled"));
+    const key = JSON.stringify([fen, depth, searchMove ? 1 : multipv, searchMove ?? null]);
+    return this.cache.getOrRun(key, () => {
+      const run = this.queue.then(() => this.analyseNow(fen, depth, multipv, searchMove));
+      this.queue = run.catch(() => {});
+      return run;
+    }).then(lines => lines.map(line => ({ ...line })));
   }
 
   private async analyseNow(fen: string, depth: number, multipv: number, searchMove?: string): Promise<EngineLine[]> {
@@ -117,6 +123,7 @@ export class Engine {
 
   terminate() {
     this.disposed = true;
+    this.cache.clear();
     this.fail?.(new Error("cancelled"));
     this.cleanup();
   }

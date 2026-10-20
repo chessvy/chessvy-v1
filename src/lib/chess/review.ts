@@ -81,7 +81,7 @@ export async function analyzeGame(
   const fens: string[] = [first.before, ...moves.map((m) => m.after)];
   const evals: number[] = [];
   const engine = new Engine();
-  const stm: { best: number; second: number | null; move: string | null }[] = [];
+  const stm: { best: number; second: number | null; move: string | null; runnerUp?: { move: string; score: number; depth?: number } }[] = [];
   const verified = new Set<number>();
   const playedScores = new Map<number, number>();
   try {
@@ -96,7 +96,7 @@ export async function analyzeGame(
         const lines = await engine.analyse(fen, depth, Math.min(2, c.moves().length));
         const primary = lines[0];
         if (!primary || !Number.isFinite(primary.score)) throw new Error("The engine returned no reliable evaluation. Run review again.");
-        stm.push({ best: primary.score, second: lines[1]?.score ?? null, move: primary.move });
+        stm.push({ best: primary.score, second: lines[1]?.score ?? null, move: primary.move, runnerUp: lines[1] });
       }
       if (signal.cancelled) throw new Error("cancelled");
       const score = stm[i]?.best ?? 0;
@@ -112,6 +112,12 @@ export async function analyzeGame(
       const uci = move.from + move.to + (move.promotion ?? "");
       if (before.move === uci) playedScores.set(i, before.best);
       else if (!isBookMove(move)) {
+        // The completed MultiPV runner-up is already a same-root evaluation.
+        // Reuse only at the requested depth; incomplete iterations still need a search.
+        if (before.runnerUp?.move === uci && before.runnerUp.depth === depth && Number.isFinite(before.runnerUp.score)) {
+          playedScores.set(i, before.runnerUp.score);
+          continue;
+        }
         const lines = await engine.analyse(move.before, depth, 1, uci);
         const played = lines[0];
         if (!played || !Number.isFinite(played.score)) throw new Error("The played move couldn't be verified. Run review again.");

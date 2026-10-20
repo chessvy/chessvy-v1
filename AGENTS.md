@@ -16,4 +16,5 @@
 - Board coordinates occupy separate grid tracks outside the squares so pieces remain unobstructed on all device sizes.
 - Review effects use a shared icon-sized badge wrapper and a preloaded Web Audio manager; this keeps celebrations off pieces and avoids delayed sound downloads during playback.
 - PGN exports rebuild the loaded mainline and headers through chess.js; clipboard and downloads never use potentially stale import text.
-- Move-loss comparisons use same-root restricted Stockfish searches, while the graph uses independent white-perspective position scores; complete MultiPV iterations prevent mismatched-depth comparisons.
+- Move-loss comparisons reuse a completed requested-depth MultiPV played line or use same-root restricted Stockfish searches; the graph uses independent white-perspective position scores, and complete MultiPV iterations prevent mismatched-depth comparisons.
+- Engine search promises are cached only within one Engine instance using the full FEN and all search options; failures are evicted and termination clears reuse to avoid stale scores or cross-review state.
